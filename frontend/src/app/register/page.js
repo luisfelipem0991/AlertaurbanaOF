@@ -15,6 +15,13 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // 🔢 ESTADOS DE VERIFICACIÓN POR CÓDIGO (NUEVO)
+  const [step, setStep] = useState("form"); // "form" | "code"
+  const [code, setCode] = useState("");
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
   const blueDark = "#1e3a8a"; 
   const bluePrimary = "#2563eb"; 
   const blueLight = "#ece5e5";
@@ -40,18 +47,31 @@ export default function RegisterPage() {
     marginBottom: '6px',
   };
 
-  // 🔐 REGISTRO (NUEVO)
+  function startResendCooldown() {
+    setResendCooldown(30);
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  // 🔐 PASO 1: valida el formulario y pide que se envíe el código al correo
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    // Validar contraseñas
     if (password !== confirmPassword) {
       alert("Las contraseñas no coinciden");
       return;
     }
 
+    setSending(true);
     try {
-      const res = await fetch(`${apiBaseUrl}/api/register`, {
+      const res = await fetch(`${apiBaseUrl}/api/register/send-code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -71,6 +91,43 @@ export default function RegisterPage() {
         return;
       }
 
+      // ✅ Pasamos a la vista de "ingresa el código"
+      setStep("code");
+      startResendCooldown();
+
+    } catch (error) {
+      alert("Error al registrar");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // 🔢 PASO 2: valida el código de 4 dígitos y crea la cuenta
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+
+    if (!/^\d{4}$/.test(code)) {
+      alert("El código debe ser de 4 dígitos");
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/register/verify-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, code }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error);
+        return;
+      }
+
       // ✅ Mostrar el modal en vez del alert()
       setShowSuccess(true);
 
@@ -80,7 +137,44 @@ export default function RegisterPage() {
       }, 2200);
 
     } catch (error) {
-      alert("Error al registrar");
+      alert("Error al verificar el código");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // 🔁 Reenviar código (vuelve a llamar el mismo endpoint del paso 1)
+  const handleResendCode = async () => {
+    if (resendCooldown > 0) return;
+
+    setSending(true);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/register/send-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          confirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error);
+        return;
+      }
+
+      alert("Te enviamos un nuevo código");
+      startResendCooldown();
+    } catch (error) {
+      alert("Error al reenviar el código");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -120,116 +214,215 @@ export default function RegisterPage() {
         maxWidth: '420px',
       }}>
 
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <div style={{
-            width: '70px',
-            height: '70px',
-            backgroundColor: blueLight,
-            borderRadius: '22px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 15px',
-            border: `2px solid ${bluePrimary}`,
-            fontSize: '30px',
-            transform: 'rotate(5deg)'
-          }}>
-            📝
-          </div>
-          <h1 style={{ fontSize: '26px', color: '#111827', margin: '0', fontWeight: '800' }}>Crear Cuenta</h1>
-          <p style={{ color: '#4b5563', fontSize: '14px', marginTop: '8px' }}>Únete a nuestra plataforma</p>
-        </div>
+        <style>{`
+          input::placeholder { color: #9ca3af; opacity: 1; }
+          @keyframes popIn {
+            0% { transform: scale(0.7); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+          @keyframes checkDraw {
+            0% { stroke-dashoffset: 40; }
+            100% { stroke-dashoffset: 0; }
+          }
+          @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+          }
+        `}</style>
 
-        {/* ✅ FORM CON LÓGICA */}
-        <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <style>{`
-            input::placeholder { color: #9ca3af; opacity: 1; }
-            @keyframes popIn {
-              0% { transform: scale(0.7); opacity: 0; }
-              100% { transform: scale(1); opacity: 1; }
-            }
-            @keyframes checkDraw {
-              0% { stroke-dashoffset: 40; }
-              100% { stroke-dashoffset: 0; }
-            }
-            @keyframes fadeIn {
-              0% { opacity: 0; }
-              100% { opacity: 1; }
-            }
-          `}</style>
+        {step === "form" && (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+              <div style={{
+                width: '70px',
+                height: '70px',
+                backgroundColor: blueLight,
+                borderRadius: '22px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 15px',
+                border: `2px solid ${bluePrimary}`,
+                fontSize: '30px',
+                transform: 'rotate(5deg)'
+              }}>
+                📝
+              </div>
+              <h1 style={{ fontSize: '26px', color: '#111827', margin: '0', fontWeight: '800' }}>Crear Cuenta</h1>
+              <p style={{ color: '#4b5563', fontSize: '14px', marginTop: '8px' }}>Únete a nuestra plataforma</p>
+            </div>
 
-          {/* NOMBRE */}
-          <div>
-            <label style={labelStyle}>Nombre completo</label>
-            <input
-              type="text"
-              placeholder="Ej: Pepito Pérez"
-              style={inputStyle}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
+            {/* ✅ FORM CON LÓGICA */}
+            <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {/* NOMBRE */}
+              <div>
+                <label style={labelStyle}>Nombre completo</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Pepito Pérez"
+                  style={inputStyle}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
 
-          {/* EMAIL */}
-          <div>
-            <label style={labelStyle}>Correo electrónico</label>
-            <input
-              type="email"
-              placeholder="pepito@ejemplo.com"
-              style={inputStyle}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+              {/* EMAIL */}
+              <div>
+                <label style={labelStyle}>Correo electrónico</label>
+                <input
+                  type="email"
+                  placeholder="pepito@ejemplo.com"
+                  style={inputStyle}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
 
-          {/* PASSWORD */}
-          <div>
-            <label style={labelStyle}>Contraseña</label>
-            <input
-              type="password"
-              placeholder="Mínimo 8 caracteres"
-              style={inputStyle}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+              {/* PASSWORD */}
+              <div>
+                <label style={labelStyle}>Contraseña</label>
+                <input
+                  type="password"
+                  placeholder="Mínimo 8 caracteres"
+                  style={inputStyle}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
 
-          {/* CONFIRM PASSWORD */}
-          <div>
-            <label style={labelStyle}>Confirmar contraseña</label>
-            <input
-              type="password"
-              placeholder="Repite tu contraseña"
-              style={inputStyle}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
+              {/* CONFIRM PASSWORD */}
+              <div>
+                <label style={labelStyle}>Confirmar contraseña</label>
+                <input
+                  type="password"
+                  placeholder="Repite tu contraseña"
+                  style={inputStyle}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
 
-          <button type="submit" style={{
-            width: '100%',
-            padding: '15px',
-            backgroundColor: bluePrimary,
-            color: 'white',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            borderRadius: '14px',
-            border: 'none',
-            cursor: 'pointer',
-            marginTop: '10px',
-          }}>
-            Registrarse ahora
-          </button>
-        </form>
+              <button type="submit" disabled={sending} style={{
+                width: '100%',
+                padding: '15px',
+                backgroundColor: bluePrimary,
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                borderRadius: '14px',
+                border: 'none',
+                cursor: sending ? 'not-allowed' : 'pointer',
+                opacity: sending ? 0.7 : 1,
+                marginTop: '10px',
+              }}>
+                {sending ? "Enviando código..." : "Registrarse ahora"}
+              </button>
+            </form>
 
-        <div style={{ marginTop: '25px', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', color: '#374151' }}>
-            ¿Ya tienes una cuenta?{' '}
-            <Link href="/login" style={{ color: bluePrimary, fontWeight: 'bold' }}>
-              Inicia sesión
-            </Link>
-          </p>
-        </div>
+            <div style={{ marginTop: '25px', textAlign: 'center' }}>
+              <p style={{ fontSize: '14px', color: '#374151' }}>
+                ¿Ya tienes una cuenta?{' '}
+                <Link href="/login" style={{ color: bluePrimary, fontWeight: 'bold' }}>
+                  Inicia sesión
+                </Link>
+              </p>
+            </div>
+          </>
+        )}
+
+        {step === "code" && (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+              <div style={{
+                width: '70px',
+                height: '70px',
+                backgroundColor: blueLight,
+                borderRadius: '22px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 15px',
+                border: `2px solid ${bluePrimary}`,
+                fontSize: '30px',
+                transform: 'rotate(5deg)'
+              }}>
+                ✉️
+              </div>
+              <h1 style={{ fontSize: '26px', color: '#111827', margin: '0', fontWeight: '800' }}>Verifica tu correo</h1>
+              <p style={{ color: '#4b5563', fontSize: '14px', marginTop: '8px' }}>
+                Enviamos un código de 4 dígitos a<br />
+                <strong>{email}</strong>
+              </p>
+            </div>
+
+            <form onSubmit={handleVerifyCode} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={labelStyle}>Código de verificación</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="0000"
+                  style={{
+                    ...inputStyle,
+                    textAlign: 'center',
+                    fontSize: '28px',
+                    letterSpacing: '10px',
+                    fontWeight: 'bold',
+                  }}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                />
+              </div>
+
+              <button type="submit" disabled={verifying} style={{
+                width: '100%',
+                padding: '15px',
+                backgroundColor: bluePrimary,
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                borderRadius: '14px',
+                border: 'none',
+                cursor: verifying ? 'not-allowed' : 'pointer',
+                opacity: verifying ? 0.7 : 1,
+                marginTop: '10px',
+              }}>
+                {verifying ? "Verificando..." : "Confirmar código"}
+              </button>
+            </form>
+
+            <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button
+                onClick={handleResendCode}
+                disabled={resendCooldown > 0 || sending}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: resendCooldown > 0 ? '#9ca3af' : bluePrimary,
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  cursor: resendCooldown > 0 ? 'default' : 'pointer',
+                }}
+              >
+                {resendCooldown > 0 ? `Reenviar código (${resendCooldown}s)` : "Reenviar código"}
+              </button>
+
+              <button
+                onClick={() => setStep("form")}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#6b7280',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                ← Corregir datos del formulario
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 🎉 MODAL DE ÉXITO */}
