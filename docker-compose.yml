@@ -1,0 +1,40 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: alertaurbana-backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+    networks:
+      - alertaurbana-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Se hornea dentro del bundle en build time. Si cambias esta URL
+        # necesitas reconstruir la imagen (docker compose build frontend).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    container_name: alertaurbana-frontend
+    env_file:
+      - ./frontend/.env.local
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - alertaurbana-net
+
+networks:
+  alertaurbana-net:
+    driver: bridge
+
+# Nota: la base de datos (Postgres/Neon) es externa y se referencia vía
+# DATABASE_URL en backend/.env y frontend/.env.local. No se levanta un
+# contenedor de Postgres porque el proyecto usa Neon (managed).
