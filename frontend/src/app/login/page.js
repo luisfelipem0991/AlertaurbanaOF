@@ -210,6 +210,11 @@ if (payload.role === "ADMIN" || payload.role === "SUPERADMIN") {
               Regístrate aquí
             </Link>
           </p>
+          <p style={{ fontSize: '14px', color: '#374151', marginTop: '10px' }}>
+            <Link href="/forgot_password" style={{ color: bluePrimary, fontWeight: 'bold' }}>
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </p>
         </div>
 
       </div>
