@@ -54,6 +54,61 @@ export function validateVerifyCodePayload(body = {}) {
   return { valid: errors.length === 0, errors };
 }
 
+export function validateForgotPasswordPayload(body = {}) {
+  const errors = [];
+  const allowedKeys = ["email"];
+  const hasExtraKeys = Object.keys(body).some((k) => !allowedKeys.includes(k));
+  const { email } = body;
+
+  if (hasExtraKeys || !isNonEmptyString(email) || !EMAIL_REGEX.test(email.trim())) {
+    errors.push("Correo inválido");
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateResetVerifyCodePayload(body = {}) {
+  const errors = [];
+  const allowedKeys = ["email", "code"];
+  const hasExtraKeys = Object.keys(body).some((k) => !allowedKeys.includes(k));
+  const { email, code } = body;
+
+  if (hasExtraKeys || !isNonEmptyString(email) || !EMAIL_REGEX.test(email.trim())) {
+    errors.push("Correo inválido");
+  }
+  if (!isNonEmptyString(code) || !/^\d{4}$/.test(code.trim())) {
+    errors.push("El código debe ser de 4 dígitos");
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateResetPasswordPayload(body = {}) {
+  const errors = [];
+  const allowedKeys = ["resetToken", "newPassword", "confirmPassword"];
+  const hasExtraKeys = Object.keys(body).some((k) => !allowedKeys.includes(k));
+  const { resetToken, newPassword, confirmPassword } = body;
+
+  if (
+    hasExtraKeys ||
+    !isNonEmptyString(resetToken) ||
+    !isNonEmptyString(newPassword) ||
+    !isNonEmptyString(confirmPassword)
+  ) {
+    errors.push("Campos obligatorios");
+    return { valid: false, errors };
+  }
+
+  if (newPassword !== confirmPassword) {
+    errors.push("Las contraseñas no coinciden");
+  }
+  if (newPassword.length < 8 || newPassword.length > 72) {
+    errors.push("La contraseña debe tener entre 8 y 72 caracteres");
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
 export function validateLoginPayload(body = {}) {
   const errors = [];
   const allowedKeys = ["email", "password"];

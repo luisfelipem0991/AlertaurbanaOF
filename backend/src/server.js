@@ -7,6 +7,7 @@ import express from "express";
 import healthRoutes from "./routes/healthRoutes.js";
 import loginRoutes from "./routes/loginRoutes.js";
 import registerRoutes from "./routes/registerRoutes.js";
+import forgotPasswordRoutes from "./routes/forgotPasswordRoutes.js";
 import usersRoutes from "./routes/usersRoutes.js";
 import userByIdRoutes from "./routes/userByIdRoutes.js";
 import swaggerRoutes from "./routes/swaggerRoutes.js";
@@ -35,6 +36,7 @@ app.use((req, res, next) => {
 app.use("/", healthRoutes);
 app.use("/api", loginRoutes);
 app.use("/api", registerRoutes);
+app.use("/api", forgotPasswordRoutes);
 app.use("/api", usersRoutes);
 app.use("/api", userByIdRoutes);
 app.use("/api", swaggerRoutes);
