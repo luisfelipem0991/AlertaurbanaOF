@@ -124,3 +124,33 @@ export function validateLoginPayload(body = {}) {
 
   return { valid: errors.length === 0, errors };
 }
+export function validateHuecoPayload(body = {}) {
+  const errors = [];
+  const allowedKeys = ["direccion", "descripcion", "imagen_url"];
+  const hasExtraKeys = Object.keys(body).some((k) => !allowedKeys.includes(k));
+  const { direccion, descripcion, imagen_url } = body;
+
+  if (
+    hasExtraKeys ||
+    !isNonEmptyString(direccion) ||
+    !isNonEmptyString(descripcion) ||
+    !isNonEmptyString(imagen_url)
+  ) {
+    errors.push("Dirección, descripción e imagen son obligatorias");
+    return { valid: false, errors };
+  }
+
+  if (direccion.length > 255) {
+    errors.push("La dirección es demasiado larga");
+  }
+  if (descripcion.length > 2000) {
+    errors.push("La descripción es demasiado larga");
+  }
+  try {
+    new URL(imagen_url);
+  } catch {
+    errors.push("La imagen no tiene una URL válida");
+  }
+
+  return { valid: errors.length === 0, errors };
+}
