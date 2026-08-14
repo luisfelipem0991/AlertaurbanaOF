@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+// MapPicker se carga solo en el cliente (usa window y el SDK de Google Maps)
+const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 export default function ReportarHueco() {
@@ -14,8 +18,10 @@ export default function ReportarHueco() {
     direccion: "",
     imagen: null,
   });
+  const [coords, setCoords] = useState({ latitud: null, longitud: null });
   const [preview, setPreview] = useState(null);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(null);
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -44,6 +50,11 @@ export default function ReportarHueco() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Callback que recibe el MapPicker cuando el usuario elige una ubicacion
+  const handleLocationChange = (lat, lng) => {
+    setCoords({ latitud: lat, longitud: lng });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -60,7 +71,48 @@ export default function ReportarHueco() {
     }
 
     setSending(true);
+    setSendError(null);
 
+    try {
+      // Obtener user_id desde el token JWT guardado en localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setSendError("Debes iniciar sesión para reportar un hueco.");
+        setSending(false);
+        return;
+      }
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const user_id = payload.id;
+
+      const data = new FormData();
+      data.append("user_id", user_id);
+      data.append("direccion", formData.direccion);
+      data.append("descripcion", formData.descripcion);
+      data.append("imagen", formData.imagen);
+
+      // Coordenadas son opcionales (pueden ser null si el usuario no uso el mapa)
+      if (coords.latitud !== null) data.append("latitud", coords.latitud);
+      if (coords.longitud !== null) data.append("longitud", coords.longitud);
+
+      const res = await fetch("/api/huecos", {
+        method: "POST",
+        body: data,
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        setSendError(result.error || "Error al enviar el reporte. Inténtalo de nuevo.");
+        setSending(false);
+        return;
+      }
+
+      setSending(false);
+      setShowSuccess(true);
+      setTimeout(() => router.push("/huecos"), 1800);
+    } catch (err) {
+      console.error("Error en handleSubmit:", err);
+      setSendError("Error de conexión. Verifica tu red e inténtalo de nuevo.");
     try {
       const imagenUrl = await uploadImageToCloudinary(formData.imagen);
 
@@ -277,32 +329,49 @@ export default function ReportarHueco() {
             />
           </div>
 
-          {/* MAPA (placeholder, sin API todavía) */}
+          {/* MAPA — Azure Maps para seleccionar ubicación del hueco */}
           <div>
-            <label style={labelStyle}>Ubicación en el mapa</label>
+            <label style={labelStyle}>
+              Ubicación en el mapa
+              <span style={{ fontWeight: "400", color: "#6b7280", marginLeft: "6px" }}>
+                (opcional — haz clic para marcar el hueco)
+              </span>
+            </label>
+            <MapPicker onLocationChange={handleLocationChange} />
+            {/* Indicador de coordenadas seleccionadas */}
+            {coords.latitud !== null && (
+              <p
+                style={{
+                  margin: "8px 0 0",
+                  fontSize: "12px",
+                  color: "#16a34a",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                ✅ Ubicación registrada: {coords.latitud.toFixed(5)}, {coords.longitud.toFixed(5)}
+              </p>
+            )}
+          </div>
+
+          {/* Mensaje de error al enviar */}
+          {sendError && (
             <div
               style={{
-                width: "100%",
-                height: "180px",
-                borderRadius: "14px",
-                background:
-                  "repeating-linear-gradient(45deg, #eef1f5, #eef1f5 10px, #e5e9f0 10px, #e5e9f0 20px)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#6b7280",
-                gap: "6px",
-                border: "2px solid #e5e7eb",
+                padding: "12px 16px",
+                backgroundColor: "#fee2e2",
+                border: "1.5px solid #f87171",
+                borderRadius: "12px",
+                color: "#991b1b",
+                fontSize: "13px",
+                fontWeight: "600",
               }}
             >
-              <span style={{ fontSize: "28px" }}>📍</span>
-              <span style={{ fontSize: "13px", fontWeight: "600" }}>
-                El mapa interactivo se activa próximamente
-              </span>
-              <span style={{ fontSize: "12px" }}>Por ahora usa el campo de dirección</span>
+              ⚠️ {sendError}
             </div>
-          </div>
+          )}
 
           {error && (
             <p
