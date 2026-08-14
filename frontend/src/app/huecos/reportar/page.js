@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 // MapPicker se carga solo en el cliente (usa window y el SDK de Google Maps)
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 export default function ReportarHueco() {
   const router = useRouter();
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
   const [formData, setFormData] = useState({
     descripcion: "",
@@ -20,11 +22,21 @@ export default function ReportarHueco() {
   const [preview, setPreview] = useState(null);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(null);
+  const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
   const blueDark = "#1e3a8a";
   const bluePrimary = "#2563eb";
   const blueLight = "#ece5e5";
+
+  // Si no hay sesión, no tiene sentido dejar entrar al formulario:
+  // RF-004 exige un ciudadano autenticado (ver 5.4 "Permiso denegado").
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    }
+  }, [router]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -45,6 +57,19 @@ export default function ReportarHueco() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    if (!formData.imagen) {
+      setError("Sube una foto del hueco");
+      return;
+    }
+
     setSending(true);
     setSendError(null);
 
@@ -88,6 +113,34 @@ export default function ReportarHueco() {
     } catch (err) {
       console.error("Error en handleSubmit:", err);
       setSendError("Error de conexión. Verifica tu red e inténtalo de nuevo.");
+    try {
+      const imagenUrl = await uploadImageToCloudinary(formData.imagen);
+
+      const res = await fetch(`${apiBaseUrl}/api/huecos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          direccion: formData.direccion,
+          descripcion: formData.descripcion,
+          imagen_url: imagenUrl,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "No se pudo enviar el reporte");
+        return;
+      }
+
+      setShowSuccess(true);
+      setTimeout(() => router.push("/huecos"), 1800);
+    } catch (err) {
+      setError("No se pudo enviar el reporte, intenta de nuevo");
+    } finally {
       setSending(false);
     }
   };
@@ -320,6 +373,22 @@ export default function ReportarHueco() {
             </div>
           )}
 
+          {error && (
+            <p
+              style={{
+                margin: 0,
+                fontSize: "13px",
+                fontWeight: "600",
+                color: "#dc2626",
+                backgroundColor: "#fee2e2",
+                padding: "10px 14px",
+                borderRadius: "10px",
+              }}
+            >
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={sending}
@@ -337,7 +406,7 @@ export default function ReportarHueco() {
               marginTop: "6px",
             }}
           >
-            {sending ? "Enviando..." : "Enviar reporte"}
+            {sending ? "Subiendo foto y enviando..." : "Enviar reporte"}
           </button>
         </form>
       </div>

@@ -10,6 +10,7 @@ import registerRoutes from "./routes/registerRoutes.js";
 import forgotPasswordRoutes from "./routes/forgotPasswordRoutes.js";
 import usersRoutes from "./routes/usersRoutes.js";
 import userByIdRoutes from "./routes/userByIdRoutes.js";
+import huecosRoutes from "./routes/huecosRoutes.js";
 import swaggerRoutes from "./routes/swaggerRoutes.js";
 
 const app = express();
@@ -39,6 +40,7 @@ app.use("/api", registerRoutes);
 app.use("/api", forgotPasswordRoutes);
 app.use("/api", usersRoutes);
 app.use("/api", userByIdRoutes);
+app.use("/api", huecosRoutes);
 app.use("/api", swaggerRoutes);
 
 app.listen(PORT, () => {

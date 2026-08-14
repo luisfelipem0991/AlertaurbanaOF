@@ -1,12 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DemoRoleSwitcher from "./DemoRoleSwitcher";
-import { MOCK_REPORTS, STATUS_STYLE } from "@/lib/mockHuecos";
+import { STATUS_STYLE } from "@/lib/mockHuecos";
+
+function tiempoRelativo(fechaIso) {
+  const diffMs = Date.now() - new Date(fechaIso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "Hace un momento";
+  if (min < 60) return `Hace ${min} min`;
+  const horas = Math.floor(min / 60);
+  if (horas < 24) return `Hace ${horas} h`;
+  const dias = Math.floor(horas / 24);
+  return `Hace ${dias} día${dias === 1 ? "" : "s"}`;
+}
 
 function ReportCard({ report, liked, likeCount, onToggleLike }) {
-  const status = STATUS_STYLE[report.estado];
+  const status = STATUS_STYLE[report.estado] || STATUS_STYLE.pendiente;
 
   return (
     <div
@@ -19,19 +30,14 @@ function ReportCard({ report, liked, likeCount, onToggleLike }) {
         flexDirection: "column",
       }}
     >
-      {/* Imagen (placeholder) */}
-      <div
-        style={{
-          height: "150px",
-          background: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "44px",
-          position: "relative",
-        }}
-      >
-        {report.icon}
+      {/* Imagen real subida por el ciudadano */}
+      <div style={{ height: "150px", position: "relative", backgroundColor: "#dbeafe" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={report.imagen_url}
+          alt={`Hueco en ${report.direccion}`}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
         <span
           style={{
             position: "absolute",
@@ -58,7 +64,7 @@ function ReportCard({ report, liked, likeCount, onToggleLike }) {
           {report.descripcion}
         </p>
 
-        {/* Mini mapa placeholder */}
+        {/* Mini mapa placeholder — todavía no hay integración con proveedor de mapas */}
         <div
           style={{
             height: "70px",
@@ -78,9 +84,11 @@ function ReportCard({ report, liked, likeCount, onToggleLike }) {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "2px" }}>
-          <p style={{ margin: 0, fontSize: "12px", color: "#9ca3af" }}>{report.fecha}</p>
+          <p style={{ margin: 0, fontSize: "12px", color: "#9ca3af" }}>
+            {tiempoRelativo(report.created_at)} · {report.reportado_por}
+          </p>
 
-          {/* ❤️ Apoyar / "lo he visto también" */}
+          {/* ❤️ Apoyar / "lo he visto también" — todavía simulado, falta la tabla de likes */}
           <button
             onClick={onToggleLike}
             style={{
@@ -108,19 +116,43 @@ function ReportCard({ report, liked, likeCount, onToggleLike }) {
 }
 
 export default function ReportesPage() {
-  // 👍 Estado local de "apoyos" (like) por reporte, simulado mientras no
-  // existe el endpoint real (ej. POST /api/huecos/:id/like).
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // 👍 Apoyos (like) simulados en el navegador mientras no existe la tabla
+  // de likes ni el endpoint real (ej. POST /api/huecos/:id/like).
   const [liked, setLiked] = useState({});
-  const [likeCounts, setLikeCounts] = useState(
-    Object.fromEntries(MOCK_REPORTS.map((r) => [r.id, r.likes]))
-  );
+  const [likeCounts, setLikeCounts] = useState({});
+
+  useEffect(() => {
+    async function loadReports() {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/huecos`);
+        if (!res.ok) throw new Error("No se pudieron cargar los reportes");
+
+        const data = await res.json();
+        setReports(data);
+        // Arranca en 0: todavía no existe la tabla de likes real en el backend.
+        setLikeCounts(Object.fromEntries(data.map((r) => [r.id, 0])));
+      } catch (err) {
+        setError("No se pudieron cargar los reportes. Intenta de nuevo más tarde.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadReports();
+  }, [apiBaseUrl]);
 
   const toggleLike = (id) => {
     setLiked((prev) => {
       const isLiked = !prev[id];
       setLikeCounts((counts) => ({
         ...counts,
-        [id]: counts[id] + (isLiked ? 1 : -1),
+        [id]: (counts[id] || 0) + (isLiked ? 1 : -1),
       }));
       return { ...prev, [id]: isLiked };
     });
@@ -173,23 +205,41 @@ export default function ReportesPage() {
 
       {/* Lista de reportes */}
       <section style={{ maxWidth: "1100px", margin: "-32px auto 0", padding: "0 24px 60px" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: "22px",
-          }}
-        >
-          {MOCK_REPORTS.map((report) => (
-            <ReportCard
-              key={report.id}
-              report={report}
-              liked={!!liked[report.id]}
-              likeCount={likeCounts[report.id]}
-              onToggleLike={() => toggleLike(report.id)}
-            />
-          ))}
-        </div>
+        {loading && (
+          <p style={{ color: "white", fontWeight: "600" }}>Cargando reportes...</p>
+        )}
+
+        {!loading && error && (
+          <div style={{ backgroundColor: "white", borderRadius: "18px", padding: "24px", color: "#dc2626", fontWeight: "600" }}>
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && reports.length === 0 && (
+          <div style={{ backgroundColor: "white", borderRadius: "18px", padding: "24px", color: "#4b5563" }}>
+            Todavía no hay huecos reportados. ¡Sé el primero en reportar uno!
+          </div>
+        )}
+
+        {!loading && !error && reports.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: "22px",
+            }}
+          >
+            {reports.map((report) => (
+              <ReportCard
+                key={report.id}
+                report={report}
+                liked={!!liked[report.id]}
+                likeCount={likeCounts[report.id] || 0}
+                onToggleLike={() => toggleLike(report.id)}
+              />
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );
