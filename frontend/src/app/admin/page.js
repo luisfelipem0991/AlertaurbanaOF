@@ -96,8 +96,13 @@ export default function AdminPage() {
 
         {huecos.map((h) => (
           <div key={h.id} style={card}>
-            <p><strong>Ubicación:</strong> {h.location}</p>
-            <p><strong>Estado:</strong> {h.status}</p>
+            <p><strong>Dirección:</strong> {h.direccion}</p>
+            <p><strong>Estado:</strong> {h.estado}</p>
+            {h.latitud && h.longitud && (
+              <p style={{ fontSize: "12px", color: "#6b7280" }}>
+                📍 {Number(h.latitud).toFixed(5)}, {Number(h.longitud).toFixed(5)}
+              </p>
+            )}
           </div>
         ))}
       </section>
