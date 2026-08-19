@@ -143,6 +143,7 @@ export default function ReportarHueco() {
     } finally {
       setSending(false);
     }
+    }
   };
 
   const inputStyle = {
