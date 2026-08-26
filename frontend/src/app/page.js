@@ -45,9 +45,11 @@ export default function Home() {
       rápidamente y mejorar la movilidad.
     </p>
 
-    <button className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-gray-100">
-      Reportar un hueco
-    </button>
+    <Link href="/huecos/reportar" style={{ textDecoration: 'none' }}>
+      <button className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-gray-100">
+        Reportar un hueco
+      </button>
+    </Link>
   </div>
 
 </section>
@@ -86,7 +88,7 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section id="features" className="py-20 px-8 max-w-6xl mx-auto">
+      <section id="how" className="py-20 px-8 max-w-6xl mx-auto">
         <h3 className="text-3xl font-bold text-center mb-12">
           ¿Cómo funciona?
         </h3>
@@ -117,9 +119,11 @@ export default function Home() {
         <p className="mb-8">
           Cada reporte contribuye a una movilidad más segura para todos.
         </p>
-        <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200">
-          Crear mi primer reporte
-        </button>
+        <Link href="/huecos/reportar" style={{ textDecoration: 'none' }}>
+          <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200">
+            Crear mi primer reporte
+          </button>
+        </Link>
       </section>
 
       {/* Footer */}
