@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LogoutButton from "@/app/components/LogoutButton";
 import { MOCK_REPORTS, SEVERITY_STYLE, PRIORITY_STYLE, STATUS_STYLE, sortByPriority } from "@/lib/mockHuecos";
 
 function AlcaldiaRow({ report, onSetStatus }) {
@@ -117,6 +118,7 @@ export default function AlcaldiaPanel() {
           <p style={{ margin: "8px 0 0", opacity: 0.92, fontSize: "14px", maxWidth: "560px" }}>
             Ordenados de mayor a menor prioridad. Actualiza el estado a medida que avanza la reparación.
           </p>
+          <div style={{ marginTop: "16px" }}><LogoutButton /></div>
         </div>
       </header>
 

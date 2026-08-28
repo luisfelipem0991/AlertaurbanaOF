@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LogoutButton from "@/app/components/LogoutButton";
 
 export default function AdminPage() {
 
@@ -56,6 +57,10 @@ export default function AdminPage() {
       </h1>
 
       {/* 👥 USUARIOS */}
+      <div style={{ marginTop: "16px" }}>
+        <LogoutButton style={{ backgroundColor: "#dc2626", border: "none" }} />
+      </div>
+
       <section style={{ marginTop: "30px" }}>
         <h2>Usuarios</h2>
 

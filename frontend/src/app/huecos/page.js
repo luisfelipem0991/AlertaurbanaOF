@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import LogoutButton from "@/app/components/LogoutButton";
 import { STATUS_STYLE } from "@/lib/mockHuecos";
 
 function tiempoRelativo(fechaIso) {
@@ -198,6 +199,7 @@ export default function ReportesPage() {
           >
             + Reportar un hueco
           </Link>
+          <LogoutButton />
         </div>
       </header>
 

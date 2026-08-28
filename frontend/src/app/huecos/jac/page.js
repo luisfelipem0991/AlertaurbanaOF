@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LogoutButton from "@/app/components/LogoutButton";
 import { MOCK_REPORTS, SEVERITY_STYLE, PRIORITY_STYLE, sortByPriority } from "@/lib/mockHuecos";
 
 const PRIORITY_OPTIONS = ["alta", "media", "baja"];
@@ -124,6 +125,7 @@ export default function JacPanel() {
             Revisa cada reporte y asígnale una prioridad según qué tan peligroso es realmente.
             Los apoyos de la comunidad (❤️) son una señal, pero la decisión final es tuya.
           </p>
+          <div style={{ marginTop: "16px" }}><LogoutButton /></div>
         </div>
       </header>
 
