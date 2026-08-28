@@ -1,32 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function AdminPage() {
-  const router = useRouter();
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
   const [users, setUsers] = useState([]);
   const [huecos, setHuecos] = useState([]);
 
   // 🔐 PROTEGER POR ROL
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    const payload = JSON.parse(atob(token.split(".")[1]));
-
-    if (payload.role !== "ADMIN" && payload.role !== "SUPERADMIN") {
-      router.push("/huecos");
-    }
-
-  }, []);
-
   // 🔥 CARGAR DATOS
   useEffect(() => {
     fetchUsers();
@@ -35,7 +16,7 @@ export default function AdminPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${apiBaseUrl}/api/users`);
+      const res = await fetch("/api/users", { credentials: "include" });
       const data = await res.json();
       setUsers(data);
     } catch (error) {
@@ -45,7 +26,7 @@ export default function AdminPage() {
 
   const fetchHuecos = async () => {
     try {
-      const res = await fetch("/api/huecos");
+    const res = await fetch("/api/huecos", { credentials: "include" });
       const data = await res.json();
       setHuecos(data);
     } catch (error) {
@@ -55,8 +36,9 @@ export default function AdminPage() {
 
   // ❌ ELIMINAR USUARIO
   const deleteUser = async (id) => {
-    await fetch(`${apiBaseUrl}/api/users/${id}`, {
+    await fetch(`/api/users/${id}`, {
       method: "DELETE",
+      credentials: "include",
     });
     fetchUsers();
   };

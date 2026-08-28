@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import DemoRoleSwitcher from "../DemoRoleSwitcher";
 import { MOCK_REPORTS, SEVERITY_STYLE, PRIORITY_STYLE, sortByPriority } from "@/lib/mockHuecos";
 
 const PRIORITY_OPTIONS = ["alta", "media", "baja"];
@@ -114,7 +113,6 @@ export default function JacPanel() {
 
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "#f5f4fb", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
-      <DemoRoleSwitcher />
 
       <header style={{ background: "linear-gradient(135deg, #312e81 0%, #6d28d9 100%)", padding: "44px 24px 44px", color: "white" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>

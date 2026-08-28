@@ -1,17 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 // MapPicker se carga solo en el cliente (usa window y el SDK de Google Maps)
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
-import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 export default function ReportarHueco() {
   const router = useRouter();
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
   const [formData, setFormData] = useState({
     descripcion: "",
@@ -29,15 +27,6 @@ export default function ReportarHueco() {
   const bluePrimary = "#2563eb";
   const blueLight = "#ece5e5";
 
-  // Si no hay sesión, no tiene sentido dejar entrar al formulario:
-  // RF-004 exige un ciudadano autenticado (ver 5.4 "Permiso denegado").
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-    }
-  }, [router]);
-
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
@@ -51,19 +40,13 @@ export default function ReportarHueco() {
   };
 
   // Callback que recibe el MapPicker cuando el usuario elige una ubicacion
-  const handleLocationChange = (lat, lng) => {
+  const handleLocationChange = useCallback((lat, lng) => {
     setCoords({ latitud: lat, longitud: lng });
-  };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
 
     if (!formData.imagen) {
       setError("Sube una foto del hueco");
@@ -74,18 +57,7 @@ export default function ReportarHueco() {
     setSendError(null);
 
     try {
-      // Obtener user_id desde el token JWT guardado en localStorage
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setSendError("Debes iniciar sesión para reportar un hueco.");
-        setSending(false);
-        return;
-      }
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const user_id = payload.id;
-
       const data = new FormData();
-      data.append("user_id", user_id);
       data.append("direccion", formData.direccion);
       data.append("descripcion", formData.descripcion);
       data.append("imagen", formData.imagen);
@@ -113,36 +85,8 @@ export default function ReportarHueco() {
     } catch (err) {
       console.error("Error en handleSubmit:", err);
       setSendError("Error de conexión. Verifica tu red e inténtalo de nuevo.");
-    try {
-      const imagenUrl = await uploadImageToCloudinary(formData.imagen);
-
-      const res = await fetch(`${apiBaseUrl}/api/huecos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          direccion: formData.direccion,
-          descripcion: formData.descripcion,
-          imagen_url: imagenUrl,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "No se pudo enviar el reporte");
-        return;
-      }
-
-      setShowSuccess(true);
-      setTimeout(() => router.push("/huecos"), 1800);
-    } catch (err) {
-      setError("No se pudo enviar el reporte, intenta de nuevo");
     } finally {
       setSending(false);
-    }
     }
   };
 
@@ -338,7 +282,10 @@ export default function ReportarHueco() {
                 (opcional — haz clic para marcar el hueco)
               </span>
             </label>
-            <MapPicker onLocationChange={handleLocationChange} />
+            <MapPicker
+              address={formData.direccion}
+              onLocationChange={handleLocationChange}
+            />
             {/* Indicador de coordenadas seleccionadas */}
             {coords.latitud !== null && (
               <p

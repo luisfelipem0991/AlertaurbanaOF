@@ -1,4 +1,5 @@
 import pool from "@/lib/db";
+import { requireRole } from "@/lib/auth";
 
 /**
  * @swagger
@@ -49,6 +50,9 @@ import pool from "@/lib/db";
  *                   example: Error del servidor
  */
 export async function DELETE(req, { params }) {
+  const auth = requireRole(req, ["ADMIN", "SUPERADMIN"]);
+  if (auth.error) return auth.error;
+
   try {
     const { id } = params;
 

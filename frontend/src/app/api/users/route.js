@@ -1,4 +1,5 @@
 import pool from "@/lib/db";
+import { requireRole } from "@/lib/auth";
 
 /**
  * @swagger
@@ -29,7 +30,10 @@ import pool from "@/lib/db";
  *                   example: Error al consultar los usuarios
  */
 // 🔍 OBTENER TODOS LOS USUARIOS
-export async function GET() {
+export async function GET(request) {
+  const auth = requireRole(request, ["ADMIN", "SUPERADMIN"]);
+  if (auth.error) return auth.error;
+
   try {
     const result = await pool.query(
       "SELECT * FROM users ORDER BY created_at DESC"

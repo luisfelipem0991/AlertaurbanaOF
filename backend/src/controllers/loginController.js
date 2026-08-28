@@ -37,9 +37,16 @@ export async function login(req, res) {
       { expiresIn: "1h" }
     );
 
+    res.cookie("alertaurbana_session", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 1000,
+      path: "/",
+    });
+
     return res.json({
       message: "Login exitoso",
-      token,
       user: {
         id: user.id,
         name: user.name,
@@ -55,4 +62,14 @@ export async function login(req, res) {
         error: "Error del servidor"
     });
   }
+}
+
+export function logout(req, res) {
+  res.clearCookie("alertaurbana_session", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+  return res.json({ message: "Sesión cerrada" });
 }
