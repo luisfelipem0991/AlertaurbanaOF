@@ -8,7 +8,6 @@ export default function LoginPage() {
   const router = useRouter();
 
   // ✅ ESTADOS
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -61,16 +60,16 @@ export default function LoginPage() {
         SUPERADMIN: "/admin",
       };
 
-// 🔐 LEER TOKEN
-const destination = destinations[data.user?.role];
+      // 🔐 LEER TOKEN
+      const destination = destinations[data.user?.role];
 
-// 🔥 REDIRECCIÓN SEGÚN ROL
-if (!destination) {
-  alert("Tu cuenta no tiene un rol válido asignado.");
-  return;
-}
+      // 🔥 REDIRECCIÓN SEGÚN ROL
+      if (!destination) {
+        alert("Tu cuenta no tiene un rol válido asignado.");
+        return;
+      }
 
-router.push(destination);
+      router.push(destination);
 
     } catch (error) {
       alert("Error al iniciar sesión");
@@ -146,20 +145,6 @@ router.push(destination);
         {/* FORM */}
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
-          {/* NOMBRE */}
-          <div style={{ textAlign: 'left' }}>
-            <label style={{ fontWeight: '700', color: '#111827' }}>
-              Nombre completo
-            </label>
-            <input
-              type="text"
-              placeholder="Ej: Pepito Pérez"
-              style={inputStyle}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-
           {/* EMAIL */}
           <div style={{ textAlign: 'left' }}>
             <label style={{ fontWeight: '700', color: '#111827' }}>
