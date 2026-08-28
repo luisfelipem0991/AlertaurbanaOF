@@ -1,7 +1,5 @@
 import dotenv from "dotenv";
 dotenv.config();
-console.log("DATABASE_URL:", process.env.DATABASE_URL);
-console.log("JWT_SECRET:", process.env.JWT_SECRET);
 
 import express from "express";
 import healthRoutes from "./routes/healthRoutes.js";
@@ -18,11 +16,12 @@ const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
 
-const allowedOrigin = "http://localhost:3000";
+const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:3000";
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin === allowedOrigin) {
     res.header("Access-Control-Allow-Origin", allowedOrigin);
+    res.header("Access-Control-Allow-Credentials", "true");
     res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
     res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
   }

@@ -1,7 +1,9 @@
 import pool from "@/lib/db";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { NextResponse } from "next/server";
 import { validateLoginPayload } from "@/lib/validators";
+import { SESSION_COOKIE } from "@/lib/auth";
 
 /**
  * @swagger
@@ -41,9 +43,6 @@ import { validateLoginPayload } from "@/lib/validators";
  *                 message:
  *                   type: string
  *                   example: Login exitoso
- *                 token:
- *                   type: string
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *                 user:
  *                   type: object
  *                   properties:
@@ -114,15 +113,24 @@ export async function POST(req) {
       { expiresIn: "1h" }
     );
 
-    return Response.json({
+    const response = NextResponse.json({
       message: "Login exitoso",
-      token,
       user: {
         id: user.id,
         name: user.name,
         role: user.role,
       },
     });
+
+    response.cookies.set(SESSION_COOKIE, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60,
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error(error);
 

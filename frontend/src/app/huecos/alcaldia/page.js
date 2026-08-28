@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import DemoRoleSwitcher from "../DemoRoleSwitcher";
+import LogoutButton from "@/app/components/LogoutButton";
 import { MOCK_REPORTS, SEVERITY_STYLE, PRIORITY_STYLE, STATUS_STYLE, sortByPriority } from "@/lib/mockHuecos";
 
 function AlcaldiaRow({ report, onSetStatus }) {
@@ -108,7 +108,6 @@ export default function AlcaldiaPanel() {
 
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "#f3f4f6", fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
-      <DemoRoleSwitcher />
 
       <header style={{ background: "linear-gradient(135deg, #14532d 0%, #16a34a 100%)", padding: "44px 24px 44px", color: "white" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
@@ -119,6 +118,7 @@ export default function AlcaldiaPanel() {
           <p style={{ margin: "8px 0 0", opacity: 0.92, fontSize: "14px", maxWidth: "560px" }}>
             Ordenados de mayor a menor prioridad. Actualiza el estado a medida que avanza la reparación.
           </p>
+          <div style={{ marginTop: "16px" }}><LogoutButton /></div>
         </div>
       </header>
 

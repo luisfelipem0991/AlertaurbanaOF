@@ -1,5 +1,6 @@
 import pool from "@/lib/db";
 import { v2 as cloudinary } from "cloudinary";
+import { requireRole } from "@/lib/auth";
 
 /**
  * Sube un archivo de imagen a Cloudinary y devuelve la URL segura.
@@ -85,7 +86,10 @@ async function uploadToCloudinary(file) {
 // GET /api/huecos
 // Devuelve todos los huecos ordenados por fecha de creacion descendente.
 // Los registros sin latitud/longitud (NULL) se incluyen normalmente.
-export async function GET() {
+export async function GET(request) {
+  const auth = requireRole(request, ["USER", "JAC", "ALCALDIA", "ADMIN", "SUPERADMIN"]);
+  if (auth.error) return auth.error;
+
   try {
     const result = await pool.query(
       `SELECT
@@ -108,17 +112,18 @@ export async function GET() {
 // POST /api/huecos
 // Crea un nuevo reporte de hueco.
 // Espera multipart/form-data con:
-//   user_id      - UUID del usuario autenticado (obligatorio)
 //   direccion    - texto (obligatorio)
 //   descripcion  - texto (obligatorio)
 //   imagen       - archivo de imagen (obligatorio)
 //   latitud      - numero -90..90 (opcional)
 //   longitud     - numero -180..180 (opcional)
 export async function POST(request) {
+  const auth = requireRole(request, ["USER"]);
+  if (auth.error) return auth.error;
+
   try {
     const formData = await request.formData();
 
-    const user_id = formData.get("user_id");
     const direccion = formData.get("direccion")?.trim();
     const descripcion = formData.get("descripcion")?.trim();
     const imagen = formData.get("imagen");
@@ -126,9 +131,9 @@ export async function POST(request) {
     const longitudRaw = formData.get("longitud");
 
     // Validaciones basicas
-    if (!user_id || !direccion || !descripcion) {
+    if (!direccion || !descripcion) {
       return Response.json(
-        { error: "Los campos user_id, direccion y descripcion son obligatorios" },
+        { error: "Los campos direccion y descripcion son obligatorios" },
         { status: 400 }
       );
     }
@@ -185,7 +190,7 @@ export async function POST(request) {
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, user_id, direccion, descripcion, imagen_url,
                  estado, prioridad, created_at, latitud, longitud`,
-      [user_id, direccion, descripcion, imagen_url, latitud, longitud]
+      [auth.session.id, direccion, descripcion, imagen_url, latitud, longitud]
     );
 
     return Response.json(result.rows[0], { status: 201 });

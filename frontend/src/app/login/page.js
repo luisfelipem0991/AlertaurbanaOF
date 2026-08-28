@@ -6,7 +6,6 @@ import { useState } from 'react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
   // ✅ ESTADOS
   const [name, setName] = useState("");
@@ -35,8 +34,9 @@ export default function LoginPage() {
     e.preventDefault();
 
     try {
-      const res = await fetch(`${apiBaseUrl}/api/login`, {
+      const res = await fetch("/api/login", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -53,17 +53,24 @@ export default function LoginPage() {
         return;
       }
 
-  localStorage.setItem("token", data.token);
+      const destinations = {
+        USER: "/huecos",
+        JAC: "/huecos/jac",
+        ALCALDIA: "/huecos/alcaldia",
+        ADMIN: "/admin",
+        SUPERADMIN: "/admin",
+      };
 
 // 🔐 LEER TOKEN
-const payload = JSON.parse(atob(data.token.split(".")[1]));
+const destination = destinations[data.user?.role];
 
 // 🔥 REDIRECCIÓN SEGÚN ROL
-if (payload.role === "ADMIN" || payload.role === "SUPERADMIN") {
-  router.push("/admin");
-} else {
-  router.push("/huecos");
+if (!destination) {
+  alert("Tu cuenta no tiene un rol válido asignado.");
+  return;
 }
+
+router.push(destination);
 
     } catch (error) {
       alert("Error al iniciar sesión");

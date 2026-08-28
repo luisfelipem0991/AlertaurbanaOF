@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import DemoRoleSwitcher from "./DemoRoleSwitcher";
+import LogoutButton from "@/app/components/LogoutButton";
 import { STATUS_STYLE } from "@/lib/mockHuecos";
 
 function tiempoRelativo(fechaIso) {
@@ -166,7 +166,6 @@ export default function ReportesPage() {
         fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
       }}
     >
-      <DemoRoleSwitcher />
 
       {/* Header */}
       <header
@@ -200,6 +199,7 @@ export default function ReportesPage() {
           >
             + Reportar un hueco
           </Link>
+          <LogoutButton />
         </div>
       </header>
 

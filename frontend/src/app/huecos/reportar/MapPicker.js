@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
  */
 export default function MapPicker({
   onLocationChange,
+  address = "",
   initialLat = 6.2442,
   initialLng = -75.5812,
 }) {
@@ -20,14 +21,13 @@ export default function MapPicker({
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const [status, setStatus] = useState("loading"); // "loading" | "ready" | "no-key" | "error"
+  const apiKey =
+    process.env.NEXT_PUBLIC_AZURE_MAPS_KEY ||
+    process.env.NEXT_PUBLIC_AZURE_MAPS_SUBSCRIPTION_KEY ||
+    process.env.NEXT_PUBLIC_AZURE_MAPS_API_KEY ||
+    process.env.NEXT_PUBLIC_AZURE_MAPS_CLIENT_ID;
 
   useEffect(() => {
-    const apiKey =
-      process.env.NEXT_PUBLIC_AZURE_MAPS_KEY ||
-      process.env.NEXT_PUBLIC_AZURE_MAPS_SUBSCRIPTION_KEY ||
-      process.env.NEXT_PUBLIC_AZURE_MAPS_API_KEY ||
-      process.env.NEXT_PUBLIC_AZURE_MAPS_CLIENT_ID;
-
     if (!apiKey) {
       setStatus("no-key");
       return;
@@ -152,6 +152,59 @@ export default function MapPicker({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Busca la dirección escrita y sincroniza el marcador con el primer resultado.
+  useEffect(() => {
+    const query = address.trim();
+    const map = mapInstanceRef.current;
+
+    if (status !== "ready" || !map || !apiKey || query.length < 3) return;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          "api-version": "1.0",
+          query,
+          countrySet: "CO",
+          limit: "1",
+          "subscription-key": apiKey,
+        });
+        const response = await fetch(
+          `https://atlas.microsoft.com/search/address/json?${params}`,
+          { signal: controller.signal }
+        );
+        const result = await response.json();
+        const position = result.results?.[0]?.position;
+
+        if (!response.ok || !position) return;
+
+        const { lat, lon } = position;
+        map.setCamera({ center: [lon, lat], zoom: 16 });
+
+        if (markerRef.current) {
+          markerRef.current.setOptions({ position: [lon, lat] });
+        } else {
+          markerRef.current = new window.atlas.HtmlMarker({
+            position: [lon, lat],
+            color: "#2563eb",
+          });
+          map.markers.add(markerRef.current);
+        }
+
+        onLocationChange(lat, lon);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Error al buscar la dirección en Azure Maps:", error);
+        }
+      }
+    }, 600);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [address, apiKey, onLocationChange, status]);
 
   // --- Renders alternativos según estado ---
 
