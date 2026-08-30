@@ -1,11 +1,12 @@
 "use client";
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // ✅ ESTADOS
   const [email, setEmail] = useState("");
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const blueDark = "#1e3a8a"; 
   const bluePrimary = "#2563eb"; 
   const blueLight = "#eff6ff";
+  const googleError = searchParams.get("error");
 
   const inputStyle = {
     width: '100%',
@@ -192,7 +194,38 @@ export default function LoginPage() {
           >
             Iniciar Sesión
           </button>
+          <button
+            type="button"
+            onClick={() => window.location.assign("/api/auth/google")}
+            style={{
+              width: '100%',
+              padding: '13px',
+              backgroundColor: 'white',
+              color: '#374151',
+              fontSize: '15px',
+              fontWeight: 'bold',
+              borderRadius: '14px',
+              border: '1px solid #d1d5db',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4" d="M21.35 12.23c0-.71-.06-1.4-.17-2.07H12v3.92h5.24a4.48 4.48 0 0 1-1.94 2.94v2.54h3.14c1.84-1.7 2.89-4.2 2.89-7.33Z" />
+                <path fill="#34A853" d="M12 22c2.64 0 4.85-.88 6.46-2.39l-3.14-2.54c-.88.59-2 .94-3.32.94-2.55 0-4.71-1.72-5.48-4.04H3.27v2.62A10 10 0 0 0 12 22Z" />
+                <path fill="#FBBC05" d="M6.52 13.97A6.01 6.01 0 0 1 6.21 12c0-.68.12-1.34.31-1.97V7.41H3.27A10 10 0 0 0 2 12c0 1.61.39 3.13 1.07 4.59l3.45-2.62Z" />
+                <path fill="#EA4335" d="M12 5.99c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.09 14.64 2 12 2a10 10 0 0 0-8.73 5.41l3.25 2.62C7.29 7.71 9.45 5.99 12 5.99Z" />
+              </svg>
+              Continuar con Google
+            </span>
+          </button>
         </form>
+
+        {googleError && (
+          <p style={{ color: '#dc2626', fontSize: '13px', textAlign: 'center', marginTop: '14px' }}>
+            No fue posible iniciar sesión con Google. Inténtalo nuevamente.
+          </p>
+        )}
 
         {/* LINK */}
         <div style={{ marginTop: '30px', textAlign: 'center', borderTop: '1px solid #f3f4f6', paddingTop: '20px' }}>

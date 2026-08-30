@@ -101,6 +101,13 @@ export async function POST(req) {
 
     const user = result.rows[0];
 
+    if (!user.password) {
+      return Response.json(
+        { error: "Esta cuenta usa Google. Inicia sesión con Google." },
+        { status: 400 }
+      );
+    }
+
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
