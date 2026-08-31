@@ -66,9 +66,11 @@ export default function ReportarHueco() {
       if (coords.latitud !== null) data.append("latitud", coords.latitud);
       if (coords.longitud !== null) data.append("longitud", coords.longitud);
 
-      const res = await fetch("/api/huecos", {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${apiBaseUrl}/api/huecos`, {
         method: "POST",
         body: data,
+        credentials: "include",
       });
 
       const result = await res.json();
