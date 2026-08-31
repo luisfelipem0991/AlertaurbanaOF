@@ -145,7 +145,10 @@ export default function LoginPage() {
 
           <button
             type="button"
-            onClick={() => window.location.assign("/api/auth/google")}
+            onClick={() => {
+              const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+              window.location.assign(`${apiBaseUrl}/api/auth/google`);
+            }}
             className="w-full py-3.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-3 shadow-sm"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
