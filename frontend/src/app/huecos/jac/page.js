@@ -303,9 +303,18 @@ export default function JacPanel() {
                   </button>
                 </div>
               ) : selectedReport.prioridad ? (
-                <div className="flex items-center gap-2 text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-500/10 px-4 py-2 rounded-xl font-bold w-full sm:w-auto justify-center">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                  Aprobado y enviado a Alcaldía
+                <div className="flex flex-col items-center sm:items-start gap-1 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-500/10 px-4 py-2 rounded-xl font-bold w-full sm:w-auto justify-center">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    Aprobado por la JAC
+                  </div>
+                  <div className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg text-center w-full mt-1">
+                    Avance de Alcaldía: {
+                      !selectedReport.estado || selectedReport.estado === "pendiente" ? "Por Iniciar" :
+                      selectedReport.estado === "en_proceso" ? "En Ejecución 🚧" :
+                      "Finalizado ✅"
+                    }
+                  </div>
                 </div>
               ) : (
                 <>
@@ -348,6 +357,14 @@ function ReportCard({ report, isApproved, isDiscarded, onClick }) {
   if (isApproved) borderColor = 'border-l-green-500';
   if (isDiscarded) borderColor = 'border-l-red-500';
 
+  const estadoAlcaldiaLabels = {
+    pendiente: { label: "Por Iniciar", color: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300" },
+    en_proceso: { label: "En Ejecución", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+    resuelto: { label: "Finalizado", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  };
+
+  const alcaldiaStatus = report.estado ? estadoAlcaldiaLabels[report.estado] : estadoAlcaldiaLabels.pendiente;
+
   return (
     <div 
       onClick={onClick}
@@ -370,6 +387,16 @@ function ReportCard({ report, isApproved, isDiscarded, onClick }) {
       <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
         {report.descripcion}
       </p>
+
+      {/* Mostrar estado de Alcaldía si está aprobado */}
+      {isApproved && (
+        <div className="mt-1 flex items-center gap-1.5">
+          <span className="text-[10px] uppercase font-bold text-slate-400">Estado Alcaldía:</span>
+          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${alcaldiaStatus.color}`}>
+            {alcaldiaStatus.label}
+          </span>
+        </div>
+      )}
 
       <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-700">
         <span className="text-xs font-semibold text-slate-400">
