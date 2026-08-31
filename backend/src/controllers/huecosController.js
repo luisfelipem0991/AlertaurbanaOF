@@ -50,3 +50,56 @@ export async function getHuecos(req, res) {
     return res.status(500).json({ error: "Error del servidor" });
   }
 }
+
+// PATCH /api/huecos/:id — actualiza la prioridad o el estado del reporte.
+export async function updateHueco(req, res) {
+  try {
+    const { id } = req.params;
+    const { prioridad, estado } = req.body;
+
+    const checkResult = await pool.query("SELECT id FROM huecos WHERE id = $1", [id]);
+    
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: "Reporte no encontrado" });
+    }
+
+    let updateFields = [];
+    let values = [];
+    let valueIndex = 1;
+
+    if (prioridad !== undefined) {
+      updateFields.push(`prioridad = $${valueIndex}`);
+      values.push(prioridad);
+      valueIndex++;
+    }
+
+    if (estado !== undefined) {
+      updateFields.push(`estado = $${valueIndex}`);
+      values.push(estado);
+      valueIndex++;
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: "No se proporcionaron campos válidos para actualizar" });
+    }
+
+    values.push(id);
+
+    const query = `
+      UPDATE huecos 
+      SET ${updateFields.join(", ")}
+      WHERE id = $${valueIndex}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, values);
+    return res.json(result.rows[0]);
+
+  } catch (error) {
+    console.error("UPDATE HUECO ERROR:");
+    console.error(error);
+    console.error(error.stack);
+
+    return res.status(500).json({ error: "Error del servidor al actualizar el reporte" });
+  }
+}
