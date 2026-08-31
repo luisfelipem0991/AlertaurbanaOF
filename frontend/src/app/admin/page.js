@@ -15,9 +15,11 @@ export default function AdminPage() {
     fetchHuecos();
   }, []);
 
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
   const fetchUsers = async () => {
     try {
-      const res = await fetch("/api/users", { credentials: "include" });
+      const res = await fetch(`${apiBaseUrl}/api/users`, { credentials: "include" });
       const data = await res.json();
       setUsers(data);
     } catch (error) {
@@ -27,7 +29,7 @@ export default function AdminPage() {
 
   const fetchHuecos = async () => {
     try {
-    const res = await fetch("/api/huecos", { credentials: "include" });
+      const res = await fetch(`${apiBaseUrl}/api/huecos`, { credentials: "include" });
       const data = await res.json();
       setHuecos(data);
     } catch (error) {
@@ -37,7 +39,7 @@ export default function AdminPage() {
 
   // ❌ ELIMINAR USUARIO
   const deleteUser = async (id) => {
-    await fetch(`/api/users/${id}`, {
+    await fetch(`${apiBaseUrl}/api/users/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
