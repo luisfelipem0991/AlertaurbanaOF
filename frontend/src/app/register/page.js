@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import Swal from 'sweetalert2';
+
 export default function RegisterPage() {
   const router = useRouter();
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "";
@@ -40,7 +42,12 @@ export default function RegisterPage() {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      alert("Las contraseñas no coinciden");
+      Swal.fire({
+        icon: 'warning',
+        title: 'Verifica tus datos',
+        text: 'Las contraseñas no coinciden',
+        confirmButtonColor: '#f97316'
+      });
       return;
     }
 
@@ -62,7 +69,12 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al registrar',
+          text: data.error,
+          confirmButtonColor: '#f97316'
+        });
         return;
       }
 
@@ -70,7 +82,12 @@ export default function RegisterPage() {
       startResendCooldown();
 
     } catch (error) {
-      alert("Error al registrar");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo contactar al servidor.',
+        confirmButtonColor: '#f97316'
+      });
     } finally {
       setSending(false);
     }
@@ -81,7 +98,12 @@ export default function RegisterPage() {
     e.preventDefault();
 
     if (!/^\d{4}$/.test(code)) {
-      alert("El código debe ser de 4 dígitos");
+      Swal.fire({
+        icon: 'warning',
+        title: 'Código inválido',
+        text: 'El código debe ser de 4 dígitos',
+        confirmButtonColor: '#f97316'
+      });
       return;
     }
 
@@ -98,7 +120,12 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Código incorrecto',
+          text: data.error,
+          confirmButtonColor: '#f97316'
+        });
         return;
       }
 
@@ -108,7 +135,12 @@ export default function RegisterPage() {
       }, 2200);
 
     } catch (error) {
-      alert("Error al verificar el código");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'Hubo un error al verificar tu código.',
+        confirmButtonColor: '#f97316'
+      });
     } finally {
       setVerifying(false);
     }
@@ -136,14 +168,29 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: data.error,
+          confirmButtonColor: '#f97316'
+        });
         return;
       }
 
-      alert("Te enviamos un nuevo código");
+      Swal.fire({
+        icon: 'success',
+        title: 'Código reenviado',
+        text: 'Revisa tu bandeja de entrada',
+        confirmButtonColor: '#f97316'
+      });
       startResendCooldown();
     } catch (error) {
-      alert("Error al reenviar el código");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo reenviar el código.',
+        confirmButtonColor: '#f97316'
+      });
     } finally {
       setSending(false);
     }
@@ -321,7 +368,7 @@ export default function RegisterPage() {
         )}
       </div>
 
-      {/* 🎉 MODAL DE ÉXITO */}
+      {/* 🎉 MODAL DE ÉÉXITO */}
       {showSuccess && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-10 w-[90%] max-w-sm text-center shadow-2xl shadow-slate-900/50 border border-slate-100 dark:border-slate-700 animate-in zoom-in-95 duration-300">

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Swal from "sweetalert2";
 
 export default function LogoutButton({ style, className }) {
   const router = useRouter();
@@ -22,7 +23,12 @@ export default function LogoutButton({ style, className }) {
       router.replace("/login");
       router.refresh();
     } catch {
-      alert("No se pudo cerrar la sesión. Intenta nuevamente.");
+      Swal.fire({
+        icon: 'warning',
+        title: 'Atención',
+        text: 'No se pudo cerrar la sesión. Intenta nuevamente.',
+        confirmButtonColor: '#f97316'
+      });
       setIsLoggingOut(false);
     }
   };

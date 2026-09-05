@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -51,14 +52,24 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error);
+        Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: data.error,
+      confirmButtonColor: '#f97316'
+    });
         return;
       }
 
       setStep("code");
       startResendCooldown();
     } catch (error) {
-      alert("Error al solicitar el código");
+      Swal.fire({
+      icon: 'warning',
+      title: 'Atención',
+      text: 'Error al solicitar el código',
+      confirmButtonColor: '#f97316'
+    });
     } finally {
       setSending(false);
     }
@@ -69,7 +80,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
 
     if (!/^\d{4}$/.test(code)) {
-      alert("El código debe ser de 4 dígitos");
+      Swal.fire({
+      icon: 'warning',
+      title: 'Atención',
+      text: 'El código debe ser de 4 dígitos',
+      confirmButtonColor: '#f97316'
+    });
       return;
     }
 
@@ -84,14 +100,24 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error);
+        Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: data.error,
+      confirmButtonColor: '#f97316'
+    });
         return;
       }
 
       setResetToken(data.resetToken);
       setStep("reset");
     } catch (error) {
-      alert("Error al verificar el código");
+      Swal.fire({
+      icon: 'warning',
+      title: 'Atención',
+      text: 'Error al verificar el código',
+      confirmButtonColor: '#f97316'
+    });
     } finally {
       setVerifying(false);
     }
@@ -112,14 +138,29 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error);
+        Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: data.error,
+      confirmButtonColor: '#f97316'
+    });
         return;
       }
 
-      alert("Te enviamos un nuevo código");
+      Swal.fire({
+      icon: 'warning',
+      title: 'Atención',
+      text: 'Te enviamos un nuevo código',
+      confirmButtonColor: '#f97316'
+    });
       startResendCooldown();
     } catch (error) {
-      alert("Error al reenviar el código");
+      Swal.fire({
+      icon: 'warning',
+      title: 'Atención',
+      text: 'Error al reenviar el código',
+      confirmButtonColor: '#f97316'
+    });
     } finally {
       setSending(false);
     }
@@ -130,7 +171,12 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      alert("Las contraseñas no coinciden");
+      Swal.fire({
+      icon: 'warning',
+      title: 'Atención',
+      text: 'Las contraseñas no coinciden',
+      confirmButtonColor: '#f97316'
+    });
       return;
     }
 
@@ -149,7 +195,12 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error);
+        Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: data.error,
+      confirmButtonColor: '#f97316'
+    });
         return;
       }
 
@@ -159,7 +210,12 @@ export default function ForgotPasswordPage() {
         router.push("/login");
       }, 2200);
     } catch (error) {
-      alert("Error al cambiar la contraseña");
+      Swal.fire({
+      icon: 'warning',
+      title: 'Atención',
+      text: 'Error al cambiar la contraseña',
+      confirmButtonColor: '#f97316'
+    });
     } finally {
       setResetting(false);
     }
@@ -338,7 +394,7 @@ export default function ForgotPasswordPage() {
         )}
       </div>
 
-      {/* MODAL DE ÉXITO */}
+      {/* MODAL DE ÉÉXITO */}
       {showSuccess && (
         <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-10 w-[90%] max-w-sm text-center shadow-2xl shadow-slate-900/50 border border-slate-100 dark:border-slate-700 animate-in zoom-in-95 duration-300">
