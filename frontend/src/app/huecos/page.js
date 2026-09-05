@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Swal from 'sweetalert2';
 import { useEffect, useState } from "react";
 import LogoutButton from "@/app/components/LogoutButton";
 import { STATUS_STYLE } from "@/lib/mockHuecos";
@@ -183,7 +184,12 @@ export default function ReportesPage() {
       // Revertir en caso de error
       setLiked({ ...liked, [id]: isCurrentlyLiked });
       setLikeCounts({ ...likeCounts, [id]: currentCount });
-      alert("Inicia sesión para poder apoyar un reporte.");
+      Swal.fire({
+      icon: 'warning',
+      title: 'Atención',
+      text: 'Inicia sesión para poder apoyar un reporte.',
+      confirmButtonColor: '#f97316'
+    });
     }
   };
 

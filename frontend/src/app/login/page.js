@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
+import Swal from 'sweetalert2';
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,7 +39,12 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error);
+        Swal.fire({
+          icon: 'error',
+          title: 'No se pudo iniciar sesión',
+          text: data.error,
+          confirmButtonColor: '#f97316'
+        });
         setIsLoading(false);
         return;
       }
@@ -53,7 +60,12 @@ export default function LoginPage() {
       const destination = destinations[data.user?.role];
 
       if (!destination) {
-        alert("Tu cuenta no tiene un rol válido asignado.");
+        Swal.fire({
+          icon: 'warning',
+          title: 'Acceso restringido',
+          text: 'Tu cuenta no tiene un rol válido asignado.',
+          confirmButtonColor: '#f97316'
+        });
         setIsLoading(false);
         return;
       }
@@ -61,7 +73,12 @@ export default function LoginPage() {
       router.push(destination);
 
     } catch (error) {
-      alert("Error al iniciar sesión");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'Error al comunicarse con el servidor.',
+        confirmButtonColor: '#f97316'
+      });
       setIsLoading(false);
     }
   };

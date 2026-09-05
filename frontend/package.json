@@ -19,8 +19,10 @@
     "pg": "^8.20.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "recharts": "^3.10.1",
     "swagger-jsdoc": "^6.3.0",
-    "swagger-ui-react": "^5.32.8"
+    "swagger-ui-react": "^5.32.8",
+    "sweetalert2": "^11.26.25"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
