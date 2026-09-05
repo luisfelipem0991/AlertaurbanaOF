@@ -35,9 +35,15 @@ export async function getHuecos(req, res) {
   try {
     const result = await pool.query(
       `SELECT h.id, h.direccion, h.descripcion, h.imagen_url, h.estado,
-              h.prioridad, h.created_at, u.name AS reportado_por
+              h.prioridad, h.created_at, u.name AS reportado_por,
+              COALESCE(l.like_count, 0)::int AS likes_count
        FROM huecos h
        JOIN users u ON u.id = h.user_id
+       LEFT JOIN (
+         SELECT hueco_id, COUNT(*) AS like_count
+         FROM hueco_likes
+         GROUP BY hueco_id
+       ) l ON h.id = l.hueco_id
        ORDER BY h.created_at DESC`
     );
 
@@ -101,5 +107,47 @@ export async function updateHueco(req, res) {
     console.error(error.stack);
 
     return res.status(500).json({ error: "Error del servidor al actualizar el reporte" });
+  }
+}
+
+export async function toggleLike(req, res) {
+  try {
+    const huecoId = req.params.id;
+    const userId = req.user.id;
+    
+    // Check if like exists
+    const checkResult = await pool.query("SELECT * FROM hueco_likes WHERE hueco_id = $1 AND user_id = $2", [huecoId, userId]);
+    let liked = false;
+    
+    if (checkResult.rows.length > 0) {
+      // Unlike
+      await pool.query("DELETE FROM hueco_likes WHERE hueco_id = $1 AND user_id = $2", [huecoId, userId]);
+      liked = false;
+    } else {
+      // Like
+      await pool.query("INSERT INTO hueco_likes (hueco_id, user_id) VALUES ($1, $2)", [huecoId, userId]);
+      liked = true;
+    }
+    
+    // Get new count
+    const countResult = await pool.query("SELECT COUNT(*) AS count FROM hueco_likes WHERE hueco_id = $1", [huecoId]);
+    const likesCount = parseInt(countResult.rows[0].count, 10);
+    
+    return res.json({ liked, likesCount });
+  } catch (error) {
+    console.error("TOGGLE LIKE ERROR:", error);
+    return res.status(500).json({ error: "Error del servidor al cambiar el apoyo" });
+  }
+}
+
+export async function getMyLikes(req, res) {
+  try {
+    const userId = req.user.id;
+    const result = await pool.query("SELECT hueco_id FROM hueco_likes WHERE user_id = $1", [userId]);
+    const likedIds = result.rows.map(row => row.hueco_id);
+    return res.json(likedIds);
+  } catch (error) {
+    console.error("GET LIKES ERROR:", error);
+    return res.status(500).json({ error: "Error del servidor" });
   }
 }
