@@ -53,6 +53,14 @@ function ReportCard({ report, liked, likeCount, onToggleLike, onVerMas }) {
         </div>
 
         <div className="mt-auto pt-3 flex flex-col gap-3">
+          {report.barrio && (
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700/50 w-fit px-3 py-1 rounded-lg">
+              <svg className="w-3.5 h-3.5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1v1H9V7zm5 0h1v1h-1V7zm-5 4h1v1H9v-1zm5 0h1v1h-1v-1zm-5 4h1v1H9v-1zm5 0h1v1h-1v-1z" /></svg>
+              <p className="m-0 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide truncate max-w-[200px]">
+                {report.barrio}
+              </p>
+            </div>
+          )}
           <button
             onClick={() => onVerMas(report)}
             className="w-full bg-slate-50 dark:bg-slate-700 hover:bg-orange-50 dark:hover:bg-slate-600 text-orange-600 dark:text-orange-400 font-bold text-sm py-2 rounded-xl transition-colors border border-slate-200 dark:border-slate-600 hover:border-orange-200 dark:hover:border-orange-500/50"
@@ -93,9 +101,16 @@ export default function ReportesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedReport, setSelectedReport] = useState(null);
+  const [searchBarrio, setSearchBarrio] = useState("");
 
   const [liked, setLiked] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
+
+  const filteredReports = reports.filter(r => {
+    if (!searchBarrio.trim()) return true;
+    const barrio = r.barrio || "";
+    return barrio.toLowerCase().includes(searchBarrio.toLowerCase());
+  });
 
   // Cargar preferencia de tema de localStorage al inicio
   useEffect(() => {
@@ -211,8 +226,8 @@ export default function ReportesPage() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
               Reportar un hueco
             </Link>
-            <div className="w-full sm:w-auto bg-slate-100/50 dark:bg-white/5 p-1.5 rounded-xl backdrop-blur-md border border-slate-200 dark:border-white/10 hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors duration-300 flex justify-center text-slate-800 dark:text-white">
-              <LogoutButton />
+            <div className="w-full sm:w-auto">
+              <LogoutButton className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/60 dark:bg-white/10 backdrop-blur-md border border-white/80 dark:border-white/20 text-slate-800 dark:text-white font-bold text-sm shadow-[0_4px_15px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_15px_rgba(0,0,0,0.2)] hover:bg-white hover:shadow-[0_4px_25px_rgba(249,115,22,0.15)] dark:hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5 transition-all duration-300" />
             </div>
           </div>
         </div>
@@ -220,6 +235,28 @@ export default function ReportesPage() {
 
       {/* Lista de reportes */}
       <section className="max-w-6xl mx-auto px-6 py-8 -mt-12 relative z-20">
+        
+        {/* Barra de búsqueda por barrio */}
+        <div className="mb-8 flex justify-center">
+          <div className="bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 w-full max-w-lg flex items-center gap-3 transition-colors">
+            <div className="bg-orange-50 dark:bg-orange-500/10 p-2 rounded-xl text-orange-500">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <input 
+              type="text" 
+              placeholder="Buscar por barrio (ej: Laureles, Belén...)"
+              value={searchBarrio}
+              onChange={e => setSearchBarrio(e.target.value)}
+              className="w-full bg-transparent border-none outline-none text-slate-700 dark:text-slate-200 placeholder-slate-400 py-2 font-medium text-[15px]"
+            />
+            {searchBarrio && (
+              <button onClick={() => setSearchBarrio("")} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        </div>
+
         {loading && (
           <div className="flex justify-center p-12 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
             <div className="w-12 h-12 border-4 border-orange-200 dark:border-orange-900 border-t-orange-500 dark:border-t-orange-500 rounded-full animate-spin"></div>
@@ -232,17 +269,23 @@ export default function ReportesPage() {
           </div>
         )}
 
-        {!loading && !error && reports.length === 0 && (
+        {!loading && !error && filteredReports.length === 0 && (
           <div className="bg-white dark:bg-slate-800 rounded-3xl p-12 text-center text-slate-500 dark:text-slate-400 shadow-sm border border-slate-100 dark:border-slate-700 border-dashed transition-colors">
             <div className="text-4xl mb-4">🛣️</div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Todo limpio</h3>
-            <p className="mt-2">Todavía no hay huecos reportados. ¡Sé el primero en reportar uno!</p>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+              {reports.length === 0 ? "Todo limpio" : "No hay resultados"}
+            </h3>
+            <p className="mt-2">
+              {reports.length === 0 
+                ? "Todavía no hay huecos reportados. ¡Sé el primero en reportar uno!" 
+                : "No encontramos reportes para ese barrio."}
+            </p>
           </div>
         )}
 
-        {!loading && !error && reports.length > 0 && (
+        {!loading && !error && filteredReports.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {reports.map((report) => (
+            {filteredReports.map((report) => (
               <ReportCard
                 key={report.id}
                 report={report}
