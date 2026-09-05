@@ -126,17 +126,18 @@ export function validateLoginPayload(body = {}) {
 }
 export function validateHuecoPayload(body = {}) {
   const errors = [];
-  const allowedKeys = ["direccion", "descripcion", "imagen_url"];
+  const allowedKeys = ["direccion", "descripcion", "imagen_url", "barrio"];
   const hasExtraKeys = Object.keys(body).some((k) => !allowedKeys.includes(k));
-  const { direccion, descripcion, imagen_url } = body;
+  const { direccion, descripcion, imagen_url, barrio } = body;
 
   if (
     hasExtraKeys ||
     !isNonEmptyString(direccion) ||
     !isNonEmptyString(descripcion) ||
-    !isNonEmptyString(imagen_url)
+    !isNonEmptyString(imagen_url) ||
+    !isNonEmptyString(barrio)
   ) {
-    errors.push("Dirección, descripción e imagen son obligatorias");
+    errors.push("Dirección, barrio, descripción e imagen son obligatorias");
     return { valid: false, errors };
   }
 

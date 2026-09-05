@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 // MapPicker se carga solo en el cliente (usa window y el SDK de Google Maps)
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
+
+
 
 export default function ReportarHueco() {
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function ReportarHueco() {
   const [formData, setFormData] = useState({
     descripcion: "",
     direccion: "",
+    barrio: "",
     imagen: null,
   });
   const [coords, setCoords] = useState({ latitud: null, longitud: null });
@@ -23,9 +26,17 @@ export default function ReportarHueco() {
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const blueDark = "#1e3a8a";
-  const bluePrimary = "#2563eb";
-  const blueLight = "#ece5e5";
+  // Inicializar tema
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedTheme = localStorage.getItem('theme');
+      if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -39,7 +50,6 @@ export default function ReportarHueco() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Callback que recibe el MapPicker cuando el usuario elige una ubicacion
   const handleLocationChange = useCallback((lat, lng) => {
     setCoords({ latitud: lat, longitud: lng });
   }, []);
@@ -52,6 +62,11 @@ export default function ReportarHueco() {
       setError("Sube una foto del hueco");
       return;
     }
+    
+    if (!formData.barrio) {
+      setError("Selecciona el barrio o comuna");
+      return;
+    }
 
     setSending(true);
     setSendError(null);
@@ -59,10 +74,10 @@ export default function ReportarHueco() {
     try {
       const data = new FormData();
       data.append("direccion", formData.direccion);
+      data.append("barrio", formData.barrio);
       data.append("descripcion", formData.descripcion);
       data.append("imagen", formData.imagen);
 
-      // Coordenadas son opcionales (pueden ser null si el usuario no uso el mapa)
       if (coords.latitud !== null) data.append("latitud", coords.latitud);
       if (coords.longitud !== null) data.append("longitud", coords.longitud);
 
@@ -92,176 +107,130 @@ export default function ReportarHueco() {
     }
   };
 
-  const inputStyle = {
-    width: "100%",
-    padding: "12px 16px",
-    borderRadius: "14px",
-    border: "2px solid #d1d5db",
-    backgroundColor: "#ffffff",
-    boxSizing: "border-box",
-    outline: "none",
-    fontSize: "15px",
-    color: "#000000",
-  };
-
-  const labelStyle = {
-    display: "block",
-    color: "#111827",
-    fontSize: "14px",
-    fontWeight: "600",
-    marginBottom: "8px",
-  };
-
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: `linear-gradient(135deg, ${blueDark} 0%, ${bluePrimary} 100%)`,
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        padding: "20px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <style>{`
-        input::placeholder, textarea::placeholder { color: #9ca3af; opacity: 1; }
-        input:focus, textarea:focus { border-color: ${bluePrimary} !important; }
-        @keyframes popIn { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
-        @keyframes checkDraw { 0% { stroke-dashoffset: 40; } 100% { stroke-dashoffset: 0; } }
-      `}</style>
+    <main className="min-h-screen relative flex items-center justify-center py-12 px-4 font-sans bg-slate-50 dark:bg-slate-900 transition-colors duration-300 overflow-hidden">
+      {/* Background Gradients and Patterns */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-50 dark:from-slate-950 via-white dark:via-slate-900 to-amber-50 dark:to-slate-950 opacity-100 transition-colors duration-300"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[60%] bg-orange-400/20 dark:bg-orange-600/20 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[60%] bg-amber-400/20 dark:bg-amber-600/20 rounded-full blur-[120px]"></div>
+        
+        {/* Silueta de Ciudad y Montañas (Skyline de Medellín) */}
+        <div className="absolute bottom-0 left-0 w-full opacity-60 dark:opacity-80">
+          <svg viewBox="0 0 1440 320" className="w-full h-[25vh] sm:h-[35vh] object-cover sm:object-fill" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Montañas de Medellín */}
+            <path 
+              className="fill-slate-200/60 dark:fill-slate-800/60 transition-colors duration-500" 
+              d="M0,320 L0,180 Q120,90 280,160 T600,120 T950,200 T1250,110 T1440,190 L1440,320 Z" 
+            />
+            {/* Edificios traseros */}
+            <path 
+              className="fill-slate-200 dark:fill-slate-800 transition-colors duration-500" 
+              d="M0,320 L0,220 L30,220 L30,170 L70,170 L70,240 L120,240 L120,150 L180,150 L180,210 L230,210 L230,130 L290,130 L290,190 L350,190 L350,110 L410,110 L410,230 L470,230 L470,160 L520,160 L520,210 L580,210 L580,100 L640,100 L640,220 L700,220 L700,140 L760,140 L760,200 L820,200 L820,120 L880,120 L880,230 L940,230 L940,150 L1000,150 L1000,210 L1060,210 L1060,90 L1120,90 L1120,220 L1180,220 L1180,130 L1240,130 L1240,190 L1300,190 L1300,110 L1360,110 L1360,210 L1440,210 L1440,320 Z" 
+            />
+            {/* Edificios frontales */}
+            <path 
+              className="fill-slate-300 dark:fill-slate-900 transition-colors duration-500" 
+              d="M0,320 L0,270 L40,270 L40,230 L90,230 L90,290 L140,290 L140,210 L200,210 L200,280 L250,280 L250,180 L310,180 L310,260 L380,260 L380,160 L440,160 L440,270 L500,270 L500,200 L550,200 L550,250 L610,250 L610,150 L680,150 L680,280 L740,280 L740,190 L800,190 L800,240 L850,240 L850,170 L910,170 L910,260 L980,260 L980,180 L1040,180 L1040,250 L1100,250 L1100,140 L1170,140 L1170,260 L1220,260 L1220,200 L1280,200 L1280,240 L1340,240 L1340,160 L1400,160 L1400,270 L1440,270 L1440,320 Z" 
+            />
+          </svg>
+          {/* Pequeña capa de gradiente para que se funda bien con la base */}
+          <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-slate-300 dark:from-slate-900 to-transparent"></div>
+        </div>
+      </div>
 
       <Link
         href="/huecos"
-        style={{
-          position: "absolute",
-          top: "20px",
-          left: "20px",
-          color: "white",
-          textDecoration: "none",
-          fontSize: "14px",
-          backgroundColor: "rgba(255, 255, 255, 0.15)",
-          padding: "10px 20px",
-          borderRadius: "50px",
-          backdropFilter: "blur(10px)",
-          fontWeight: "500",
-        }}
+        className="absolute top-6 left-6 z-20 flex items-center gap-2 px-5 py-2.5 bg-white/60 dark:bg-white/10 backdrop-blur-md border border-slate-200 dark:border-white/20 rounded-full text-slate-700 dark:text-white font-bold text-sm shadow-sm hover:shadow-md hover:bg-white dark:hover:bg-white/20 transition-all hover:-translate-x-1"
       >
-        ← Volver a reportes
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        Volver
       </Link>
 
-      <div
-        style={{
-          backgroundColor: "white",
-          padding: "40px",
-          borderRadius: "30px",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-          width: "100%",
-          maxWidth: "560px",
-        }}
-      >
-        <div style={{ textAlign: "center", marginBottom: "28px" }}>
-          <div
-            style={{
-              width: "70px",
-              height: "70px",
-              backgroundColor: blueLight,
-              borderRadius: "22px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 15px",
-              border: `2px solid ${bluePrimary}`,
-              fontSize: "30px",
-              transform: "rotate(5deg)",
-            }}
-          >
+      <div className="relative z-10 w-full max-w-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-8 sm:p-10 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] border border-white dark:border-slate-700 transition-colors">
+        
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 bg-orange-50 dark:bg-orange-500/10 rounded-3xl flex items-center justify-center mx-auto mb-5 border-2 border-orange-200 dark:border-orange-500/30 text-4xl shadow-inner transform rotate-3">
             🚧
           </div>
-          <h1 style={{ fontSize: "26px", color: "#111827", margin: 0, fontWeight: "800" }}>
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">
             Reportar un hueco
           </h1>
-          <p style={{ color: "#4b5563", fontSize: "14px", marginTop: "8px" }}>
-            Tu reporte ayuda a que las autoridades actúen más rápido
+          <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">
+            Tu reporte ciudadano ayuda a que las autoridades actúen más rápido.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          
+          {/* BARRIO */}
+          <div>
+            <label className="block text-slate-800 dark:text-slate-200 text-sm font-bold mb-2">Barrio o Comuna</label>
+            <input
+              type="text"
+              name="barrio"
+              placeholder="Ej: Laureles, Belén, El Poblado..."
+              value={formData.barrio}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[15px] focus:outline-none focus:border-orange-500 dark:focus:border-orange-500 transition-colors placeholder-slate-400"
+            />
+          </div>
+
           {/* DIRECCIÓN */}
           <div>
-            <label style={labelStyle}>Dirección o referencia</label>
+            <label className="block text-slate-800 dark:text-slate-200 text-sm font-bold mb-2">Dirección exacta o referencia</label>
             <input
               type="text"
               name="direccion"
               placeholder="Ej: Calle 45 con Carrera 70"
               value={formData.direccion}
               onChange={handleChange}
-              style={inputStyle}
               required
+              className="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[15px] focus:outline-none focus:border-orange-500 dark:focus:border-orange-500 transition-colors placeholder-slate-400"
             />
           </div>
 
           {/* DESCRIPCIÓN */}
           <div>
-            <label style={labelStyle}>Descripción del daño</label>
+            <label className="block text-slate-800 dark:text-slate-200 text-sm font-bold mb-2">Descripción del daño</label>
             <textarea
               name="descripcion"
               rows="3"
               placeholder="Describe el tamaño, la profundidad o el riesgo que representa..."
               value={formData.descripcion}
               onChange={handleChange}
-              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
               required
+              className="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[15px] focus:outline-none focus:border-orange-500 dark:focus:border-orange-500 transition-colors placeholder-slate-400 resize-y"
             />
           </div>
 
           {/* IMAGEN */}
           <div>
-            <label style={labelStyle}>Foto del hueco</label>
+            <label className="block text-slate-800 dark:text-slate-200 text-sm font-bold mb-2">Evidencia Fotográfica</label>
             <label
               htmlFor="imagen"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "14px",
-                border: "2px dashed #c7cad1",
-                borderRadius: "14px",
-                padding: "16px",
-                cursor: "pointer",
-                backgroundColor: "#fafafa",
-              }}
+              className="flex items-center gap-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-4 cursor-pointer bg-slate-50/50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors group"
             >
               {preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={preview}
                   alt="Vista previa"
-                  style={{ width: "64px", height: "64px", objectFit: "cover", borderRadius: "10px" }}
+                  className="w-16 h-16 object-cover rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 group-hover:scale-105 transition-transform"
                 />
               ) : (
-                <div
-                  style={{
-                    width: "64px",
-                    height: "64px",
-                    borderRadius: "10px",
-                    backgroundColor: blueLight,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "26px",
-                    flexShrink: 0,
-                  }}
-                >
+                <div className="w-16 h-16 rounded-xl bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
                   📷
                 </div>
               )}
               <div>
-                <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#111827" }}>
+                <p className="m-0 text-sm font-bold text-slate-800 dark:text-slate-200 truncate pr-2">
                   {formData.imagen ? formData.imagen.name : "Sube una foto del daño"}
                 </p>
-                <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#6b7280" }}>
-                  JPG o PNG, máximo 5MB
+                <p className="m-0 text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                  Requerido. JPG o PNG (máx. 5MB)
                 </p>
               </div>
             </label>
@@ -271,151 +240,81 @@ export default function ReportarHueco() {
               name="imagen"
               accept="image/*"
               onChange={handleChange}
-              style={{ display: "none" }}
+              className="hidden"
               required
             />
           </div>
 
-          {/* MAPA — Azure Maps para seleccionar ubicación del hueco */}
+          {/* MAPA */}
           <div>
-            <label style={labelStyle}>
-              Ubicación en el mapa
-              <span style={{ fontWeight: "400", color: "#6b7280", marginLeft: "6px" }}>
-                (opcional — haz clic para marcar el hueco)
-              </span>
+            <label className="block text-slate-800 dark:text-slate-200 text-sm font-bold mb-2 flex justify-between items-center">
+              <span>Ubicación en el mapa</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-lg">Opcional</span>
             </label>
-            <MapPicker
-              address={formData.direccion}
-              onLocationChange={handleLocationChange}
-            />
-            {/* Indicador de coordenadas seleccionadas */}
+            <div className="rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-600">
+              <MapPicker
+                address={formData.direccion}
+                onLocationChange={handleLocationChange}
+              />
+            </div>
             {coords.latitud !== null && (
-              <p
-                style={{
-                  margin: "8px 0 0",
-                  fontSize: "12px",
-                  color: "#16a34a",
-                  fontWeight: "600",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                }}
-              >
-                ✅ Ubicación registrada: {coords.latitud.toFixed(5)}, {coords.longitud.toFixed(5)}
+              <p className="mt-2 text-xs font-bold text-green-600 dark:text-green-400 flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                Registrada: {coords.latitud.toFixed(4)}, {coords.longitud.toFixed(4)}
               </p>
             )}
           </div>
 
-          {/* Mensaje de error al enviar */}
+          {/* ERRORES */}
           {sendError && (
-            <div
-              style={{
-                padding: "12px 16px",
-                backgroundColor: "#fee2e2",
-                border: "1.5px solid #f87171",
-                borderRadius: "12px",
-                color: "#991b1b",
-                fontSize: "13px",
-                fontWeight: "600",
-              }}
-            >
-              ⚠️ {sendError}
+            <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-red-600 dark:text-red-400 text-sm font-bold flex items-start gap-2">
+              <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              {sendError}
             </div>
           )}
 
           {error && (
-            <p
-              style={{
-                margin: 0,
-                fontSize: "13px",
-                fontWeight: "600",
-                color: "#dc2626",
-                backgroundColor: "#fee2e2",
-                padding: "10px 14px",
-                borderRadius: "10px",
-              }}
-            >
+            <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-red-600 dark:text-red-400 text-sm font-bold flex items-start gap-2">
+              <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
               {error}
-            </p>
+            </div>
           )}
 
+          {/* SUBMIT BUTTON */}
           <button
             type="submit"
             disabled={sending}
-            style={{
-              width: "100%",
-              padding: "15px",
-              backgroundColor: bluePrimary,
-              color: "white",
-              fontSize: "16px",
-              fontWeight: "bold",
-              borderRadius: "14px",
-              border: "none",
-              cursor: sending ? "not-allowed" : "pointer",
-              opacity: sending ? 0.7 : 1,
-              marginTop: "6px",
-            }}
+            className={`w-full mt-2 py-4 px-6 rounded-2xl text-white font-extrabold text-base transition-all duration-300 shadow-lg ${
+              sending 
+                ? "bg-slate-400 cursor-not-allowed" 
+                : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:shadow-orange-500/30 hover:-translate-y-1 cursor-pointer"
+            }`}
           >
-            {sending ? "Subiendo foto y enviando..." : "Enviar reporte"}
+            {sending ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin w-5 h-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Procesando reporte...
+              </span>
+            ) : "Enviar reporte"}
           </button>
         </form>
       </div>
 
+      {/* SUCCESS MODAL */}
       {showSuccess && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.55)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-            animation: "fadeIn 0.25s ease-out",
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "28px",
-              padding: "40px 32px",
-              width: "90%",
-              maxWidth: "360px",
-              textAlign: "center",
-              boxShadow: "0 25px 60px -10px rgba(0, 0, 0, 0.45)",
-              animation: "popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
-            }}
-          >
-            <div
-              style={{
-                width: "84px",
-                height: "84px",
-                borderRadius: "50%",
-                backgroundColor: "#dcfce7",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 20px",
-              }}
-            >
-              <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M4 12.5L9.5 18L20 6"
-                  stroke="#16a34a"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeDasharray="40"
-                  style={{ animation: "checkDraw 0.5s 0.2s ease-out forwards" }}
-                />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-10 w-[90%] max-w-sm text-center shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-700">
+            <div className="w-24 h-24 rounded-full bg-green-100 dark:bg-green-500/20 mx-auto mb-6 flex items-center justify-center shadow-inner">
+              <svg className="w-12 h-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#111827", margin: 0 }}>
-              ¡Reporte enviado!
-            </h2>
-            <p style={{ fontSize: "14px", color: "#4b5563", marginTop: "10px", lineHeight: "1.5" }}>
-              Gracias por ayudar a mejorar las vías de tu ciudad.
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-2">¡Reporte enviado!</h2>
+            <p className="text-slate-600 dark:text-slate-300 font-medium">
+              Gracias por ayudar a construir una mejor ciudad para todos.
             </p>
           </div>
         </div>

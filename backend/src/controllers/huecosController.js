@@ -10,14 +10,14 @@ export async function createHueco(req, res) {
       return res.status(400).json({ error: errors[0] });
     }
 
-    const { direccion, descripcion, imagen_url } = req.body;
+    const { direccion, descripcion, imagen_url, barrio } = req.body;
     const userId = req.user.id;
 
     const result = await pool.query(
-      `INSERT INTO huecos (user_id, direccion, descripcion, imagen_url)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, direccion, descripcion, imagen_url, estado, prioridad, created_at`,
-      [userId, direccion.trim(), descripcion.trim(), imagen_url.trim()]
+      `INSERT INTO huecos (user_id, direccion, descripcion, imagen_url, barrio)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, direccion, barrio, descripcion, imagen_url, estado, prioridad, created_at`,
+      [userId, direccion.trim(), descripcion.trim(), imagen_url.trim(), barrio.trim()]
     );
 
     return res.status(201).json(result.rows[0]);
@@ -34,7 +34,7 @@ export async function createHueco(req, res) {
 export async function getHuecos(req, res) {
   try {
     const result = await pool.query(
-      `SELECT h.id, h.direccion, h.descripcion, h.imagen_url, h.estado,
+      `SELECT h.id, h.direccion, h.barrio, h.descripcion, h.imagen_url, h.estado,
               h.prioridad, h.created_at, u.name AS reportado_por,
               COALESCE(l.like_count, 0)::int AS likes_count
        FROM huecos h
