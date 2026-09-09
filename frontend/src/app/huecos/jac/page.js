@@ -61,6 +61,15 @@ export default function JacPanel() {
               allowOutsideClick: false,
               allowEscapeKey: false,
               confirmButtonText: 'Guardar y Continuar',
+              buttonsStyling: false,
+              customClass: {
+                popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+                title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+                htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
+                input: 'w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors',
+                confirmButton: 'bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg w-full',
+                validationMessage: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-bold mt-2 p-2 rounded-lg'
+              },
               inputValidator: (value) => {
                 if (!value || value.trim() === '') {
                   return '¡Debes escribir un barrio para poder continuar!';
@@ -81,6 +90,13 @@ export default function JacPanel() {
                   icon: 'success',
                   title: '¡Listo!',
                   text: `Ahora solo verás los reportes de ${barrioInput.trim()}.`,
+                  buttonsStyling: false,
+                  customClass: {
+                    popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+                    title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+                    htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
+                    confirmButton: 'bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg w-full'
+                  }
                 });
               }
             }
