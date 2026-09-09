@@ -6,6 +6,6 @@ const router = Router();
 
 router.get("/users/me", verifyToken, getMe);
 router.patch("/users/me", verifyToken, updateMe);
-router.get("/users", verifyToken, allowRoles("ADMIN", "SUPERADMIN"), getUsers);
+router.get("/users", verifyToken, allowRoles("ADMIN", "SUPERADMIN", "ALCALDIA"), getUsers);
 
 export default router;

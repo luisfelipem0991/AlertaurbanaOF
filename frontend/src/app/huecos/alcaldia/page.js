@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import LogoutButton from "@/app/components/LogoutButton";
+import Swal from "sweetalert2";
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer
@@ -20,9 +21,11 @@ function sortByPriority(reports) {
 
 export default function AlcaldiaPanel() {
   const [reports, setReports] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pendientes");
   const [timeFilter, setTimeFilter] = useState("todo"); // "mensual", "anual", "todo"
+  const [searchUser, setSearchUser] = useState("");
 
   const [selectedReport, setSelectedReport] = useState(null);
 
@@ -38,17 +41,27 @@ export default function AlcaldiaPanel() {
     }
   }, []);
 
-  // Fetch real data
   useEffect(() => {
-    async function fetchReports() {
+    async function fetchData() {
       try {
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-        const res = await fetch(`${apiBaseUrl}/api/huecos`, { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
+        
+        // Fetch Reports
+        const resReports = await fetch(`${apiBaseUrl}/api/huecos`, { credentials: "include" });
+        if (resReports.ok) {
+          const data = await resReports.json();
           setReports(data);
         } else {
           console.error("No se pudieron cargar los reportes");
+        }
+
+        // Fetch Users
+        const resUsers = await fetch(`${apiBaseUrl}/api/users`, { credentials: "include" });
+        if (resUsers.ok) {
+          const dataUsers = await resUsers.json();
+          // Filter to show only USER and JAC
+          const filtered = dataUsers.filter(u => u.role === "USER" || u.role === "JAC");
+          setUsers(filtered);
         }
       } catch (error) {
         console.error("Error al hacer fetch a la API", error);
@@ -56,7 +69,7 @@ export default function AlcaldiaPanel() {
         setLoading(false);
       }
     }
-    fetchReports();
+    fetchData();
   }, []);
 
   const handleSetStatus = async (id, estado) => {
@@ -82,6 +95,69 @@ export default function AlcaldiaPanel() {
       }
     } catch (error) {
       console.error("Error al actualizar el estado", error);
+    }
+  };
+
+  const handleUserRoleChange = async (userId, newRole, userName) => {
+    const result = await Swal.fire({
+      title: '¿Cambiar rol?',
+      text: `¿Estás seguro de cambiar el rol de ${userName} a ${newRole}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cambiar',
+      cancelButtonText: 'Cancelar',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+        title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+        htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
+        confirmButton: 'bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-md mx-2',
+        cancelButton: 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold py-2 px-6 rounded-xl transition-all mx-2'
+      }
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const res = await fetch(`${apiBaseUrl}/api/users/${userId}/role`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ role: newRole }),
+        });
+
+        if (res.ok) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Actualizado',
+            text: `El rol ha sido cambiado exitosamente.`,
+            buttonsStyling: false,
+            customClass: {
+              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+              title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+              htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
+              confirmButton: 'bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-md'
+            }
+          });
+          setUsers((prev) => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        } else {
+          const data = await res.json();
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: data.error || 'No se pudo cambiar el rol.',
+            buttonsStyling: false,
+            customClass: {
+              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+              title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+              htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
+              confirmButton: 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-md'
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error al actualizar rol:", error);
+      }
     }
   };
 
@@ -137,6 +213,11 @@ export default function AlcaldiaPanel() {
   ];
 
   const totalReparados = statusCount.resuelto;
+  
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.name.toLowerCase().includes(searchUser.toLowerCase()) || (u.email && u.email.toLowerCase().includes(searchUser.toLowerCase()));
+    return matchesSearch;
+  });
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 font-sans">
@@ -220,6 +301,16 @@ export default function AlcaldiaPanel() {
             <div className="flex items-center gap-3">
               <span className={`w-2.5 h-2.5 rounded-full ${activeTab === "estadisticas" ? "bg-purple-500" : "bg-slate-300 dark:bg-slate-600"}`}></span>
               Estadísticas
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("usuarios")}
+            className={`flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === "usuarios" ? "bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className={`w-2.5 h-2.5 rounded-full ${activeTab === "usuarios" ? "bg-orange-500" : "bg-slate-300 dark:bg-slate-600"}`}></span>
+              Comunidad
             </div>
           </button>
         </aside>
@@ -410,6 +501,67 @@ export default function AlcaldiaPanel() {
                 </div>
               )}
 
+              {/* TAB USUARIOS */}
+              {activeTab === "usuarios" && (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Gestión de Comunidad</h2>
+                    
+                    <div className="relative w-full sm:w-64">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                      </div>
+                      <input 
+                        type="text" 
+                        placeholder="Buscar usuario..." 
+                        value={searchUser}
+                        onChange={(e) => setSearchUser(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {filteredUsers.length === 0 ? (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                      <p className="text-slate-500 dark:text-slate-400">No hay usuarios en la comunidad.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredUsers.map(user => (
+                        <div key={user.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-3 hover:-translate-y-1 transition-all duration-300">
+                          <div className="flex items-start justify-between">
+                            <div className="truncate pr-2">
+                              <h3 className="font-bold text-slate-900 dark:text-white text-sm truncate" title={user.name}>{user.name}</h3>
+                              <p className="text-slate-500 dark:text-slate-400 text-xs truncate" title={user.email}>{user.email}</p>
+                            </div>
+                            <span className={`text-[9px] font-extrabold px-2 py-1 rounded-md tracking-wider uppercase shrink-0 ${
+                              user.role === 'JAC' ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
+                              "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                            }`}>
+                              {user.role}
+                            </span>
+                          </div>
+                          
+                          <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700">
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
+                              Rol asignado
+                            </label>
+                            <select
+                              value={user.role}
+                              onChange={(e) => handleUserRoleChange(user.id, e.target.value, user.name)}
+                              className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2 font-semibold focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 cursor-pointer transition-colors"
+                            >
+                              <option value="USER">USER (Ciudadano)</option>
+                              <option value="JAC">JAC (Líder Comunal)</option>
+                            </select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
           )}
         </div>
@@ -499,7 +651,7 @@ export default function AlcaldiaPanel() {
               {selectedReport.estado === "en_proceso" && (
                 <>
                   <button
-                    onClick={() => handleSetStatus(selectedReport.id, "pendiente")}
+                    onClick={() => handleSetStatus(selectedReport.id, null)}
                     className="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold rounded-xl transition-colors"
                   >
                     Devolver a Por Iniciar
