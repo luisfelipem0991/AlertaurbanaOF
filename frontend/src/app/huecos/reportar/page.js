@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { uploadImageToCloudinary } from "../../../lib/cloudinary";
 
 // MapPicker se carga solo en el cliente (usa window y el SDK de Google Maps)
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
@@ -72,19 +73,31 @@ export default function ReportarHueco() {
     setSendError(null);
 
     try {
-      const data = new FormData();
-      data.append("direccion", formData.direccion);
-      data.append("barrio", formData.barrio);
-      data.append("descripcion", formData.descripcion);
-      data.append("imagen", formData.imagen);
+      // 1. Subir la imagen a Cloudinary
+      let imagen_url;
+      try {
+        imagen_url = await uploadImageToCloudinary(formData.imagen);
+      } catch (cloudErr) {
+        setSendError("Error al subir la imagen a Cloudinary. Revisa tu red.");
+        setSending(false);
+        return;
+      }
 
-      if (coords.latitud !== null) data.append("latitud", coords.latitud);
-      if (coords.longitud !== null) data.append("longitud", coords.longitud);
+      // 2. Enviar JSON al backend
+      const payload = {
+        direccion: formData.direccion,
+        barrio: formData.barrio,
+        descripcion: formData.descripcion,
+        imagen_url: imagen_url,
+      };
 
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
       const res = await fetch(`${apiBaseUrl}/api/huecos`, {
         method: "POST",
-        body: data,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
         credentials: "include",
       });
 
