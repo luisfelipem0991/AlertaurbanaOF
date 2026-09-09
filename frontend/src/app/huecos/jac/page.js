@@ -19,6 +19,7 @@ export default function JacPanel() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [activeTab, setActiveTab] = useState("pendientes");
   const [currentUser, setCurrentUser] = useState(null);
+  const [sortBy, setSortBy] = useState("recent");
 
   // Cargar preferencia de tema de localStorage al inicio
   useEffect(() => {
@@ -127,9 +128,16 @@ export default function JacPanel() {
     ? reports.filter(r => r.barrio?.trim().toLowerCase() === normalizedUserBarrio)
     : []; // Si no tiene barrio asignado, no ve nada hasta que lo ingrese
 
-  const pendingReports = filteredReports.filter((r) => !r.prioridad);
-  const approvedReports = filteredReports.filter((r) => r.prioridad && r.prioridad !== "descartado");
-  const discardedReports = filteredReports.filter((r) => r.prioridad === "descartado");
+  // Aplicar ordenamiento
+  const sortedReports = [...filteredReports].sort((a, b) => {
+    if (sortBy === 'likes_desc') return (b.likes_count || 0) - (a.likes_count || 0);
+    if (sortBy === 'likes_asc') return (a.likes_count || 0) - (b.likes_count || 0);
+    return new Date(b.created_at) - new Date(a.created_at); // default recent
+  });
+
+  const pendingReports = sortedReports.filter((r) => !r.prioridad);
+  const approvedReports = sortedReports.filter((r) => r.prioridad && r.prioridad !== "descartado");
+  const discardedReports = sortedReports.filter((r) => r.prioridad === "descartado");
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 font-sans">
@@ -217,6 +225,22 @@ export default function JacPanel() {
           ) : (
             <div className="animate-in fade-in duration-300">
               
+              {/* FILTRO DE ORDENAMIENTO GLOBAL */}
+              <div className="flex justify-end mb-6">
+                <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <span className="text-sm font-bold text-slate-500 pl-3">Ordenar por:</span>
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-slate-50 dark:bg-slate-900 border-none text-sm font-bold text-slate-700 dark:text-slate-200 py-1.5 px-3 rounded-lg focus:ring-0 cursor-pointer outline-none"
+                  >
+                    <option value="recent">Más recientes</option>
+                    <option value="likes_desc">Mayor apoyo (Corazones)</option>
+                    <option value="likes_asc">Menor apoyo</option>
+                  </select>
+                </div>
+              </div>
+
               {/* TAB PENDIENTES */}
               {activeTab === "pendientes" && (
                 <div>
@@ -338,9 +362,15 @@ export default function JacPanel() {
                   </div>
                 )}
 
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{selectedReport.direccion}</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación</p>
+                    <p className="text-lg font-bold text-slate-900 dark:text-white">{selectedReport.direccion}</p>
+                  </div>
+                  <div className="flex flex-col items-center justify-center bg-pink-50 dark:bg-pink-500/10 border border-pink-100 dark:border-pink-500/20 rounded-xl px-4 py-2">
+                    <svg className="w-6 h-6 text-pink-500 dark:text-pink-400 mb-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
+                    <span className="text-sm font-black text-pink-600 dark:text-pink-400">{selectedReport.likes_count || 0} Apoyos</span>
+                  </div>
                 </div>
                 
                 <div>
@@ -458,13 +488,20 @@ function ReportCard({ report, isApproved, isDiscarded, onClick }) {
           alt={`Hueco en ${report.direccion}`}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
+        
+        {/* Apoyos / Likes Badge */}
+        <span className="absolute top-3 left-3 shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-pink-500 dark:text-pink-400 text-xs font-black px-2.5 py-1 rounded-xl shadow-md flex items-center gap-1.5 border border-pink-100 dark:border-pink-500/20 z-10">
+          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
+          {report.likes_count || 0}
+        </span>
+
         {isApproved && (
-          <span className="absolute top-3 right-3 shrink-0 bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-full capitalize shadow-md">
+          <span className="absolute top-3 right-3 shrink-0 bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-full capitalize shadow-md z-10">
             Aprobado: {report.prioridad}
           </span>
         )}
         {isDiscarded && (
-          <span className="absolute top-3 right-3 shrink-0 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full capitalize shadow-md">
+          <span className="absolute top-3 right-3 shrink-0 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full capitalize shadow-md z-10">
             Descartado
           </span>
         )}
