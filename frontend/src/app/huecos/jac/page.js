@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import LogoutButton from "@/app/components/LogoutButton";
+import Swal from "sweetalert2";
 
 // Estilos base para UI
 const PRIORITY_OPTIONS = ["alta", "media", "baja"];
@@ -17,6 +18,7 @@ export default function JacPanel() {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
   const [activeTab, setActiveTab] = useState("pendientes");
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Cargar preferencia de tema de localStorage al inicio
   useEffect(() => {
@@ -30,19 +32,59 @@ export default function JacPanel() {
     }
   }, []);
 
-  // Cargar reportes desde la DB real (Backend Express)
+  // Cargar reportes y usuario desde la DB real
   useEffect(() => {
-    async function fetchReports() {
+    async function fetchData() {
       try {
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-        const res = await fetch(`${apiBaseUrl}/api/huecos`, {
-          credentials: "include"
-        });
-        if (res.ok) {
-          const data = await res.json();
+        
+        // Cargar reportes
+        const resReports = await fetch(`${apiBaseUrl}/api/huecos`, { credentials: "include" });
+        if (resReports.ok) {
+          const data = await resReports.json();
           setReports(data);
-        } else {
-          console.error("No se pudieron cargar los reportes");
+        }
+
+        // Cargar usuario
+        const resUser = await fetch(`${apiBaseUrl}/api/users/me`, { credentials: "include" });
+        if (resUser.ok) {
+          const user = await resUser.json();
+          setCurrentUser(user);
+
+          // Si la JAC no tiene un barrio asignado, pedírselo obligatoriamente
+          if (!user.barrio) {
+            const { value: barrioInput } = await Swal.fire({
+              title: '¿A qué barrio perteneces?',
+              text: 'Para mostrarte los reportes relevantes, escribe el nombre de tu barrio (Ej: Laureles, Poblado).',
+              input: 'text',
+              inputPlaceholder: 'Nombre del barrio...',
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              confirmButtonText: 'Guardar y Continuar',
+              inputValidator: (value) => {
+                if (!value || value.trim() === '') {
+                  return '¡Debes escribir un barrio para poder continuar!';
+                }
+              }
+            });
+
+            if (barrioInput) {
+              const patchRes = await fetch(`${apiBaseUrl}/api/users/me`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ barrio: barrioInput.trim() }),
+              });
+              if (patchRes.ok) {
+                setCurrentUser({ ...user, barrio: barrioInput.trim() });
+                Swal.fire({
+                  icon: 'success',
+                  title: '¡Listo!',
+                  text: `Ahora solo verás los reportes de ${barrioInput.trim()}.`,
+                });
+              }
+            }
+          }
         }
       } catch (error) {
         console.error("Error al hacer fetch a la API", error);
@@ -50,7 +92,7 @@ export default function JacPanel() {
         setLoading(false);
       }
     }
-    fetchReports();
+    fetchData();
   }, []);
 
   const handleApprove = async (id, prioridad) => {
@@ -80,9 +122,14 @@ export default function JacPanel() {
     }
   };
 
-  const pendingReports = reports.filter((r) => !r.prioridad);
-  const approvedReports = reports.filter((r) => r.prioridad && r.prioridad !== "descartado");
-  const discardedReports = reports.filter((r) => r.prioridad === "descartado");
+  const normalizedUserBarrio = currentUser?.barrio?.trim().toLowerCase();
+  const filteredReports = normalizedUserBarrio
+    ? reports.filter(r => r.barrio?.trim().toLowerCase() === normalizedUserBarrio)
+    : []; // Si no tiene barrio asignado, no ve nada hasta que lo ingrese
+
+  const pendingReports = filteredReports.filter((r) => !r.prioridad);
+  const approvedReports = filteredReports.filter((r) => r.prioridad && r.prioridad !== "descartado");
+  const discardedReports = filteredReports.filter((r) => r.prioridad === "descartado");
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 font-sans">
@@ -100,7 +147,7 @@ export default function JacPanel() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-bold rounded-full border border-orange-200 dark:border-orange-500/20 mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-              PANEL JAC
+              PANEL JAC {currentUser?.barrio ? `- ${currentUser.barrio.toUpperCase()}` : ''}
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Gestión de Reportes
