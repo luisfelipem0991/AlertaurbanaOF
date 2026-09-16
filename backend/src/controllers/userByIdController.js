@@ -22,11 +22,11 @@ export async function deleteUserById(req, res) {
 export async function updateUserRole(req, res) {
   try {
     const { id } = req.params;
-    const { role } = req.body;
+    const { role, jac_id } = req.body;
 
-    const allowedRoles = ["USER", "JAC", "ALCALDIA"];
+    const allowedRoles = ["USER", "JAC", "ALCALDIA", "ADMIN", "SUPERADMIN"];
     if (!allowedRoles.includes(role)) {
-      return res.status(400).json({ error: "Rol no permitido. Debe ser USER, JAC o ALCALDIA." });
+      return res.status(400).json({ error: "Rol no permitido." });
     }
 
     if (req.user.role === "ALCALDIA" && !["USER", "JAC"].includes(role)) {
@@ -44,9 +44,14 @@ export async function updateUserRole(req, res) {
       }
     }
 
+    let finalJacId = null;
+    if (role === "JAC" && jac_id) {
+      finalJacId = jac_id;
+    }
+
     const result = await pool.query(
-      "UPDATE users SET role = $1 WHERE id = $2 RETURNING id, name, email, role",
-      [role, id]
+      "UPDATE users SET role = $1, jac_id = $2 WHERE id = $3 RETURNING id, name, email, role, jac_id",
+      [role, finalJacId, id]
     );
 
     if (result.rows.length === 0) {

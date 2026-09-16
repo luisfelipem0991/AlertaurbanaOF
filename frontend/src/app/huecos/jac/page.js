@@ -20,6 +20,7 @@ export default function JacPanel() {
   const [activeTab, setActiveTab] = useState("pendientes");
   const [currentUser, setCurrentUser] = useState(null);
   const [sortBy, setSortBy] = useState("recent");
+  const [myJacBarrios, setMyJacBarrios] = useState([]);
 
   // Cargar preferencia de tema de localStorage al inicio
   useEffect(() => {
@@ -39,69 +40,69 @@ export default function JacPanel() {
       try {
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
         
+        let fetchedUser = null;
+        let fetchedJacs = [];
+
+        // Cargar usuario
+        const resUser = await fetch(`${apiBaseUrl}/api/users/me`, { credentials: "include" });
+        if (resUser.ok) {
+          fetchedUser = await resUser.json();
+          setCurrentUser(fetchedUser);
+        }
+
+        // Cargar JACs
+        const resJacs = await fetch(`${apiBaseUrl}/api/jacs`, { credentials: "include" });
+        if (resJacs.ok) {
+          fetchedJacs = await resJacs.json();
+        }
+
+        if (fetchedUser && fetchedUser.jac_id) {
+          const myJac = fetchedJacs.find(j => j.id === fetchedUser.jac_id);
+          if (myJac) {
+             setMyJacBarrios(myJac.barrios.map(b => b.toLowerCase()));
+          }
+        } else if (fetchedUser && !fetchedUser.barrio) {
+          // Si la JAC no tiene un barrio asignado ni una entidad JAC formal, pedírselo obligatoriamente
+          const { value: barrioInput } = await Swal.fire({
+            title: '¿A qué barrio perteneces?',
+            text: 'Para mostrarte los reportes relevantes, escribe el nombre de tu barrio (Ej: Laureles, Poblado).',
+            input: 'text',
+            inputPlaceholder: 'Nombre del barrio...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            confirmButtonText: 'Guardar y Continuar',
+            buttonsStyling: false,
+            customClass: {
+              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+              title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+              htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
+              input: 'w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors',
+              confirmButton: 'bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg w-full',
+              validationMessage: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-bold mt-2 p-2 rounded-lg'
+            },
+            inputValidator: (value) => {
+              if (!value || value.trim() === '') {
+                return '¡Debes escribir un barrio para poder continuar!';
+              }
+            }
+          });
+
+          if (barrioInput) {
+            await fetch(`${apiBaseUrl}/api/users/me`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ barrio: barrioInput.trim() })
+            });
+            setCurrentUser({ ...fetchedUser, barrio: barrioInput.trim() });
+          }
+        }
+
         // Cargar reportes
         const resReports = await fetch(`${apiBaseUrl}/api/huecos`, { credentials: "include" });
         if (resReports.ok) {
           const data = await resReports.json();
           setReports(data);
-        }
-
-        // Cargar usuario
-        const resUser = await fetch(`${apiBaseUrl}/api/users/me`, { credentials: "include" });
-        if (resUser.ok) {
-          const user = await resUser.json();
-          setCurrentUser(user);
-
-          // Si la JAC no tiene un barrio asignado, pedírselo obligatoriamente
-          if (!user.barrio) {
-            const { value: barrioInput } = await Swal.fire({
-              title: '¿A qué barrio perteneces?',
-              text: 'Para mostrarte los reportes relevantes, escribe el nombre de tu barrio (Ej: Laureles, Poblado).',
-              input: 'text',
-              inputPlaceholder: 'Nombre del barrio...',
-              allowOutsideClick: false,
-              allowEscapeKey: false,
-              confirmButtonText: 'Guardar y Continuar',
-              buttonsStyling: false,
-              customClass: {
-                popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
-                title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
-                htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
-                input: 'w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors',
-                confirmButton: 'bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg w-full',
-                validationMessage: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-bold mt-2 p-2 rounded-lg'
-              },
-              inputValidator: (value) => {
-                if (!value || value.trim() === '') {
-                  return '¡Debes escribir un barrio para poder continuar!';
-                }
-              }
-            });
-
-            if (barrioInput) {
-              const patchRes = await fetch(`${apiBaseUrl}/api/users/me`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ barrio: barrioInput.trim() }),
-              });
-              if (patchRes.ok) {
-                setCurrentUser({ ...user, barrio: barrioInput.trim() });
-                Swal.fire({
-                  icon: 'success',
-                  title: '¡Listo!',
-                  text: `Ahora solo verás los reportes de ${barrioInput.trim()}.`,
-                  buttonsStyling: false,
-                  customClass: {
-                    popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
-                    title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
-                    htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
-                    confirmButton: 'bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg w-full'
-                  }
-                });
-              }
-            }
-          }
         }
       } catch (error) {
         console.error("Error al hacer fetch a la API", error);

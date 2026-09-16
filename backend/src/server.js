@@ -11,6 +11,7 @@ import userByIdRoutes from "./routes/userByIdRoutes.js";
 import huecosRoutes from "./routes/huecosRoutes.js";
 import swaggerRoutes from "./routes/swaggerRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
+import jacsRoutes from "./routes/jacsRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -43,6 +44,7 @@ app.use("/api", userByIdRoutes);
 app.use("/api", huecosRoutes);
 app.use("/api", swaggerRoutes);
 app.use("/api", googleAuthRoutes);
+app.use("/api", jacsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
