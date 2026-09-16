@@ -15,7 +15,7 @@ export async function getUsers(req, res) {
 export async function getMe(req, res) {
   try {
     const result = await pool.query(
-      "SELECT id, name, email, role, barrio, created_at FROM users WHERE id = $1",
+      "SELECT id, name, email, role, barrio, jac_id, created_at FROM users WHERE id = $1",
       [req.user.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });

@@ -22,10 +22,12 @@ function sortByPriority(reports) {
 export default function AlcaldiaPanel() {
   const [reports, setReports] = useState([]);
   const [users, setUsers] = useState([]);
+  const [jacs, setJacs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pendientes");
   const [timeFilter, setTimeFilter] = useState("todo"); // "mensual", "anual", "todo"
   const [searchUser, setSearchUser] = useState("");
+  const [selectedJacFilter, setSelectedJacFilter] = useState("todas");
 
   const [selectedReport, setSelectedReport] = useState(null);
 
@@ -63,6 +65,14 @@ export default function AlcaldiaPanel() {
           const filtered = dataUsers.filter(u => u.role === "USER" || u.role === "JAC");
           setUsers(filtered);
         }
+
+        // Fetch JACs
+        const resJacs = await fetch(`${apiBaseUrl}/api/jacs`, { credentials: "include" });
+        if (resJacs.ok) {
+          const dataJacs = await resJacs.json();
+          setJacs(dataJacs);
+        }
+
       } catch (error) {
         console.error("Error al hacer fetch a la API", error);
       } finally {
@@ -99,8 +109,38 @@ export default function AlcaldiaPanel() {
   };
 
   const handleUserRoleChange = async (userId, newRole, userName) => {
+    let selectedJacId = null;
+
+    if (newRole === 'JAC') {
+      if (jacs.length === 0) {
+        Swal.fire('Error', 'No hay Entidades JAC creadas. Crea una primero.', 'error');
+        return;
+      }
+      
+      const jacOptions = {};
+      jacs.forEach(jac => {
+        jacOptions[jac.id] = jac.nombre;
+      });
+
+      const { value: jacId } = await Swal.fire({
+        title: 'Seleccionar Entidad JAC',
+        input: 'select',
+        inputOptions: jacOptions,
+        inputPlaceholder: 'Selecciona una JAC',
+        showCancelButton: true,
+        confirmButtonText: 'Asignar',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+          if (!value) return 'Debes seleccionar una JAC';
+        }
+      });
+
+      if (!jacId) return; // User cancelled
+      selectedJacId = jacId;
+    }
+
     const result = await Swal.fire({
-      title: '¿Cambiar rol?',
+      title: '¿Confirmar cambio?',
       text: `¿Estás seguro de cambiar el rol de ${userName} a ${newRole}?`,
       icon: 'warning',
       showCancelButton: true,
@@ -123,7 +163,7 @@ export default function AlcaldiaPanel() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ role: newRole }),
+          body: JSON.stringify({ role: newRole, jac_id: selectedJacId }),
         });
 
         if (res.ok) {
@@ -139,7 +179,7 @@ export default function AlcaldiaPanel() {
               confirmButton: 'bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-md'
             }
           });
-          setUsers((prev) => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+          setUsers((prev) => prev.map(u => u.id === userId ? { ...u, role: newRole, jac_id: selectedJacId } : u));
         } else {
           const data = await res.json();
           Swal.fire({
@@ -161,10 +201,193 @@ export default function AlcaldiaPanel() {
     }
   };
 
-  // Filtrado de reportes (Solo vemos los que la JAC aprobo, descartando nulos o 'descartado')
-  const reportesAlcaldia = reports.filter(r => r.prioridad && r.prioridad !== "descartado");
+  const handleCreateJac = async () => {
+    const { value: formValues } = await Swal.fire({
+      title: 'Crear Entidad JAC',
+      html: `
+        <div class="space-y-4 mt-4 text-left">
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Nombre de la JAC</label>
+            <input id="swal-jac-name" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium placeholder-slate-400" placeholder="Ej. JAC Comuna 1">
+          </div>
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Descripción <span class="text-xs font-normal text-slate-400">(Opcional)</span></label>
+            <textarea id="swal-jac-desc" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium placeholder-slate-400 resize-none h-24" placeholder="Breve descripción de la jurisdicción..."></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Barrios asignados</label>
+            <input id="swal-jac-barrios" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium placeholder-slate-400" placeholder="Ej. Centro, San Marcos (Separados por coma)">
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Crear JAC',
+      cancelButtonText: 'Cancelar',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+        title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+        confirmButton: 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md mx-2',
+        cancelButton: 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold py-3 px-6 rounded-xl transition-all mx-2',
+      },
+      preConfirm: () => {
+        const name = document.getElementById('swal-jac-name').value;
+        const desc = document.getElementById('swal-jac-desc').value;
+        const barriosStr = document.getElementById('swal-jac-barrios').value;
+        if (!name) {
+          Swal.showValidationMessage('El nombre es obligatorio');
+          return null;
+        }
+        if (!barriosStr) {
+          Swal.showValidationMessage('Debes ingresar al menos un barrio');
+          return null;
+        }
+        const barrios = barriosStr.split(',').map(b => b.trim()).filter(b => b);
+        return { name, desc, barrios };
+      }
+    });
 
-  // Agrupamiento por estado
+    if (formValues) {
+      try {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const res = await fetch(`${apiBaseUrl}/api/jacs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            nombre: formValues.name,
+            descripcion: formValues.desc,
+            barrios: formValues.barrios
+          }),
+        });
+
+        if (res.ok) {
+          const newJac = await res.json();
+          setJacs([newJac, ...jacs]);
+          Swal.fire({
+            icon: 'success',
+            title: 'JAC Creada',
+            text: 'La Entidad JAC se ha creado exitosamente.',
+            buttonsStyling: false,
+            customClass: {
+              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+              title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+              confirmButton: 'bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-md'
+            }
+          });
+        } else {
+          const err = await res.json();
+          Swal.fire('Error', err.error || 'No se pudo crear la JAC', 'error');
+        }
+      } catch (error) {
+        console.error("Error creating JAC:", error);
+      }
+    }
+  };
+
+  const handleEditJac = async (jac) => {
+    const currentBarrios = jac.barrios ? jac.barrios.join(', ') : '';
+    const { value: formValues } = await Swal.fire({
+      title: 'Editar Entidad JAC',
+      html: `
+        <div class="space-y-4 mt-4 text-left">
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Nombre de la JAC</label>
+            <input id="swal-jac-name" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium" value="${jac.nombre}">
+          </div>
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Descripción</label>
+            <textarea id="swal-jac-desc" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium resize-none h-24">${jac.descripcion || ''}</textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Barrios asignados <span class="text-xs font-normal text-slate-400">(Separados por coma)</span></label>
+            <input id="swal-jac-barrios" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium" value="${currentBarrios}">
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar Cambios',
+      cancelButtonText: 'Cancelar',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+        title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+        confirmButton: 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md mx-2',
+        cancelButton: 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold py-3 px-6 rounded-xl transition-all mx-2',
+      },
+      preConfirm: () => {
+        const name = document.getElementById('swal-jac-name').value;
+        const desc = document.getElementById('swal-jac-desc').value;
+        const barriosStr = document.getElementById('swal-jac-barrios').value;
+        if (!name) {
+          Swal.showValidationMessage('El nombre es obligatorio');
+          return null;
+        }
+        if (!barriosStr) {
+          Swal.showValidationMessage('Debes ingresar al menos un barrio');
+          return null;
+        }
+        const barrios = barriosStr.split(',').map(b => b.trim()).filter(b => b);
+        return { name, desc, barrios };
+      }
+    });
+
+    if (formValues) {
+      try {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const res = await fetch(`${apiBaseUrl}/api/jacs/${jac.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            nombre: formValues.name,
+            descripcion: formValues.desc,
+            barrios: formValues.barrios
+          }),
+        });
+
+        if (res.ok) {
+          const updatedJac = await res.json();
+          setJacs(jacs.map(j => j.id === jac.id ? updatedJac : j));
+          Swal.fire({
+            icon: 'success',
+            title: 'JAC Actualizada',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            background: document.documentElement.classList.contains('dark') ? '#1e293b' : '#fff',
+            color: document.documentElement.classList.contains('dark') ? '#fff' : '#1e293b'
+          });
+        } else {
+          const err = await res.json();
+          Swal.fire('Error', err.error || 'No se pudo actualizar la JAC', 'error');
+        }
+      } catch (error) {
+        console.error("Error updating JAC:", error);
+      }
+    }
+  };
+
+  // Filtrado de reportes (Solo vemos los que la JAC aprobo, descartando nulos o 'descartado')
+  const reportesAlcaldia = reports.filter(r => {
+    if (!r.prioridad || r.prioridad === "descartado") return false;
+
+    if (selectedJacFilter === "todas") return true;
+
+    if (selectedJacFilter === "sin_jac") {
+      const belongsToAnyJac = jacs.some(jac => jac.barrios && jac.barrios.some(b => b.toLowerCase() === r.barrio?.toLowerCase()));
+      return !belongsToAnyJac;
+    }
+
+    const selectedJac = jacs.find(j => j.id === selectedJacFilter);
+    if (!selectedJac) return false;
+
+    return selectedJac.barrios && selectedJac.barrios.some(b => b.toLowerCase() === r.barrio?.toLowerCase());
+  });
+
   const pendientes = sortByPriority(reportesAlcaldia.filter(r => r.estado === "pendiente" || !r.estado));
   const enProceso = sortByPriority(reportesAlcaldia.filter(r => r.estado === "en_proceso"));
   const resueltos = sortByPriority(reportesAlcaldia.filter(r => r.estado === "resuelto"));
@@ -313,6 +536,15 @@ export default function AlcaldiaPanel() {
               Comunidad
             </div>
           </button>
+          <button 
+            onClick={() => setActiveTab("jacs")}
+            className={`flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === "jacs" ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className={`w-2.5 h-2.5 rounded-full ${activeTab === "jacs" ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-600"}`}></span>
+              Entidades JAC
+            </div>
+          </button>
         </aside>
 
         {/* ÁREA DE LISTADO DE REPORTES */}
@@ -328,8 +560,22 @@ export default function AlcaldiaPanel() {
               {/* TAB PENDIENTES */}
               {activeTab === "pendientes" && (
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Obras Por Iniciar</h2>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <label className="text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Filtrar JAC:</label>
+                      <select 
+                        value={selectedJacFilter} 
+                        onChange={(e) => setSelectedJacFilter(e.target.value)}
+                        className="w-full sm:w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                      >
+                        <option value="todas">Todas las obras</option>
+                        <option value="sin_jac">Sin JAC asignada</option>
+                        {jacs.map(jac => (
+                          <option key={jac.id} value={jac.id}>{jac.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   {pendientes.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -346,8 +592,22 @@ export default function AlcaldiaPanel() {
               {/* TAB EN PROCESO */}
               {activeTab === "en_proceso" && (
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Obras En Ejecución</h2>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <label className="text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Filtrar JAC:</label>
+                      <select 
+                        value={selectedJacFilter} 
+                        onChange={(e) => setSelectedJacFilter(e.target.value)}
+                        className="w-full sm:w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                      >
+                        <option value="todas">Todas las obras</option>
+                        <option value="sin_jac">Sin JAC asignada</option>
+                        {jacs.map(jac => (
+                          <option key={jac.id} value={jac.id}>{jac.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   {enProceso.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -364,8 +624,22 @@ export default function AlcaldiaPanel() {
               {/* TAB RESUELTOS */}
               {activeTab === "resueltos" && (
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Obras Finalizadas</h2>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <label className="text-sm font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Filtrar JAC:</label>
+                      <select 
+                        value={selectedJacFilter} 
+                        onChange={(e) => setSelectedJacFilter(e.target.value)}
+                        className="w-full sm:w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl px-3 py-2 font-medium focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                      >
+                        <option value="todas">Todas las obras</option>
+                        <option value="sin_jac">Sin JAC asignada</option>
+                        {jacs.map(jac => (
+                          <option key={jac.id} value={jac.id}>{jac.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   {resueltos.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -554,6 +828,62 @@ export default function AlcaldiaPanel() {
                               <option value="USER">USER (Ciudadano)</option>
                               <option value="JAC">JAC (Líder Comunal)</option>
                             </select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB JACS */}
+              {activeTab === "jacs" && (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Gestión de Entidades JAC</h2>
+                    
+                    <button 
+                      onClick={handleCreateJac}
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all hover:-translate-y-0.5"
+                    >
+                      + Crear JAC
+                    </button>
+                  </div>
+
+                  {jacs.length === 0 ? (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                      <p className="text-slate-500 dark:text-slate-400">No hay Entidades JAC creadas.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {jacs.map(jac => (
+                        <div key={jac.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-3 hover:-translate-y-1 transition-all duration-300">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-bold text-slate-900 dark:text-white text-lg leading-tight">{jac.nombre}</h3>
+                            <button 
+                              onClick={() => handleEditJac(jac)}
+                              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/20 rounded-lg transition-colors flex-shrink-0"
+                              title="Editar JAC"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                              </svg>
+                            </button>
+                          </div>
+                          {jac.descripcion && <p className="text-slate-500 dark:text-slate-400 text-sm line-clamp-2">{jac.descripcion}</p>}
+                          
+                          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Barrios asignados</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {jac.barrios && jac.barrios.length > 0 ? jac.barrios.map(b => (
+                                <span key={b} className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-md">{b}</span>
+                              )) : (
+                                <span className="text-xs text-slate-400 italic">Ningún barrio asignado</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-2 text-xs font-semibold text-slate-400">
+                            Líderes activos: {users.filter(u => u.jac_id === jac.id).length}
                           </div>
                         </div>
                       ))}
