@@ -10,6 +10,35 @@ import {
 
 const PRIORITY_ORDER = { alta: 0, media: 1, baja: 2 };
 
+const BARRIOS_MEDELLIN_BELLO = [
+  "Aldea Pablo VI", "Alfonso López", "Andalucía", "Aranjuez", "Aures", "Belalcázar", "Belén Centro", 
+  "Berlín", "Bermejal – Los Álamos", "Blanquizal", "Bolivariana", "Boston", "Boyacá", "Buenos Aires", 
+  "Caicedo", "Calasanz", "Campo Valdés Nº 2", "Carpinelo", "Castilla", "Castropol", "Córdoba", 
+  "Cristo Rey", "Doce de Octubre Nº 1", "Doce de Octubre Nº 2", "El Chagualo", "El Compromiso", 
+  "El Centro", "El Pesebre", "El Playón de Los Comuneros", "El Pomar", "El Raizal", "El Rincón", 
+  "El Salado", "El Tesoro", "Estadio", "Fátima", "Florencia", "Florida Nueva", "Francisco Antonio Zea", 
+  "Fuente Clara", "Golondrinas", "Granizal", "Guayaquil", "Guayabal", "Héctor Abad Gómez", "Kennedy", 
+  "La América", "La Avanzada", "La Castellana", "La Colina", "La Esperanza Nº 2", "La Floresta", 
+  "La Francia", "La Frontera", "La Isla", "La Mansión", "La Milagrosa", "La Mota", "La Paralela", 
+  "La Pilarica", "La Salle", "Las Brisas", "Las Granjas", "Las Lomas", "Las Palmas", "Laureles", 
+  "Loma de Los Bernal", "López de Mesa", "Loreto", "Los Álamos", "Los Ángeles", "Los Balsos", 
+  "Los Pinos", "Manila", "Manrique Central Nº 1", "Manrique Central Nº 2", "Manrique Oriental", 
+  "Maruchenga", "Mirador del Doce", "Miranda", "Moravia", "Moscú Nº 1", "Moscú Nº 2", "Pablo VI", 
+  "Pajarito", "Palenque", "Palermo", "Patio Bonito", "Pedregal", "Picachito", "Popular Nº 1", 
+  "Popular Nº 2", "Prado", "Progreso Nº 2", "Robledo Centro", "Rosales", "San Benito", "San Bernardo", 
+  "San Blas", "San Germán", "San Isidro", "San Javier", "San Martín de Porres", "San Pablo", 
+  "San Pedro", "San Joaquín", "Santa Cruz", "Santa Fe", "Santa Inés", "Santander", 
+  "Santo Domingo Savio Nº 1", "Santo Domingo Savio Nº 2", "Sevilla", "Tejelo", "Toscana", 
+  "Tricentenario", "Trinidad", "Vallejuelos", "Veinte de Julio", "Versalles Nº 1", "Versalles Nº 2", 
+  "Villa del Socorro", "Villa Guadalupe", "Villa Hermosa", "Villa Niza", "Villanueva",
+  "Alcalá", "Altos de Niquía", "Barrio Nuevo", "Bellavista", "Briceño", "Cabañas", "Central", 
+  "Centro de Bello", "Ciudad Fabricato", "Congolo", "El Danubio", "El Ducado", "El Mirador", 
+  "El Pinar", "El Porvenir", "El Rosalpi", "El Rosario", "El Triunfo", "Fontidueño", "Granizal Bello", 
+  "Guasimalito", "Hato Viejo", "La Cabañita", "La Cumbre", "La Estación", "La Gabriela", "La Madera", 
+  "La Mina", "Mánchester", "Marantá", "Mesa", "Minuto de Dios", "Niquía", "Pachelly", "París", "Pérez", 
+  "Santa Ana", "Serramonte", "Suárez", "Sucre", "Tierradentro", "Villas de Occidente", "Camacol"
+].sort();
+
 // Helper para ordenar por prioridad
 function sortByPriority(reports) {
   return [...reports].sort((a, b) => {
@@ -202,6 +231,9 @@ export default function AlcaldiaPanel() {
   };
 
   const handleCreateJac = async () => {
+    // Generar opciones del datalist
+    const datalistOptions = BARRIOS_MEDELLIN_BELLO.map(b => `<option value="${b}"></option>`).join('');
+
     const { value: formValues } = await Swal.fire({
       title: 'Crear Entidad JAC',
       html: `
@@ -216,7 +248,16 @@ export default function AlcaldiaPanel() {
           </div>
           <div>
             <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Barrios asignados</label>
-            <input id="swal-jac-barrios" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium placeholder-slate-400" placeholder="Ej. Centro, San Marcos (Separados por coma)">
+            
+            <div class="flex gap-2 mb-2">
+              <input list="barriosList" id="jac-barrio-add" placeholder="Busca y selecciona un barrio..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium placeholder-slate-400">
+              <button type="button" id="btn-add-barrio" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md shrink-0">
+                Añadir
+              </button>
+            </div>
+            <datalist id="barriosList">${datalistOptions}</datalist>
+
+            <textarea id="swal-jac-barrios" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium placeholder-slate-400 h-20 resize-none" placeholder="O puedes escribirlos manualmente separados por coma..."></textarea>
           </div>
         </div>
       `,
@@ -230,6 +271,28 @@ export default function AlcaldiaPanel() {
         title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
         confirmButton: 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md mx-2',
         cancelButton: 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold py-3 px-6 rounded-xl transition-all mx-2',
+      },
+      didOpen: () => {
+        const btnAdd = document.getElementById('btn-add-barrio');
+        const inputAdd = document.getElementById('jac-barrio-add');
+        const textarea = document.getElementById('swal-jac-barrios');
+        
+        btnAdd.addEventListener('click', () => {
+          const val = inputAdd.value.trim();
+          if (val) {
+            textarea.value = textarea.value ? textarea.value + ', ' + val : val;
+            inputAdd.value = '';
+            inputAdd.focus();
+          }
+        });
+
+        // Permitir Enter en el input para añadir
+        inputAdd.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault(); // Evita que se envíe el Swal modal
+            btnAdd.click();
+          }
+        });
       },
       preConfirm: () => {
         const name = document.getElementById('swal-jac-name').value;
@@ -287,6 +350,9 @@ export default function AlcaldiaPanel() {
   };
 
   const handleEditJac = async (jac) => {
+    // Generar opciones del datalist
+    const datalistOptions = BARRIOS_MEDELLIN_BELLO.map(b => `<option value="${b}"></option>`).join('');
+
     const currentBarrios = jac.barrios ? jac.barrios.join(', ') : '';
     const { value: formValues } = await Swal.fire({
       title: 'Editar Entidad JAC',
@@ -301,8 +367,17 @@ export default function AlcaldiaPanel() {
             <textarea id="swal-jac-desc" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium resize-none h-24">${jac.descripcion || ''}</textarea>
           </div>
           <div>
-            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Barrios asignados <span class="text-xs font-normal text-slate-400">(Separados por coma)</span></label>
-            <input id="swal-jac-barrios" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium" value="${currentBarrios}">
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Barrios asignados</label>
+            
+            <div class="flex gap-2 mb-2">
+              <input list="barriosListEdit" id="jac-barrio-add" placeholder="Busca y selecciona un barrio..." class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium placeholder-slate-400">
+              <button type="button" id="btn-add-barrio" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md shrink-0">
+                Añadir
+              </button>
+            </div>
+            <datalist id="barriosListEdit">${datalistOptions}</datalist>
+
+            <textarea id="swal-jac-barrios" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium h-20 resize-none" placeholder="O puedes escribirlos manualmente separados por coma...">${currentBarrios}</textarea>
           </div>
         </div>
       `,
@@ -316,6 +391,28 @@ export default function AlcaldiaPanel() {
         title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
         confirmButton: 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md mx-2',
         cancelButton: 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold py-3 px-6 rounded-xl transition-all mx-2',
+      },
+      didOpen: () => {
+        const btnAdd = document.getElementById('btn-add-barrio');
+        const inputAdd = document.getElementById('jac-barrio-add');
+        const textarea = document.getElementById('swal-jac-barrios');
+        
+        btnAdd.addEventListener('click', () => {
+          const val = inputAdd.value.trim();
+          if (val) {
+            textarea.value = textarea.value ? textarea.value + ', ' + val : val;
+            inputAdd.value = '';
+            inputAdd.focus();
+          }
+        });
+
+        // Permitir Enter en el input para añadir
+        inputAdd.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            btnAdd.click();
+          }
+        });
       },
       preConfirm: () => {
         const name = document.getElementById('swal-jac-name').value;
@@ -955,14 +1052,24 @@ export default function AlcaldiaPanel() {
               <div className="flex-1 flex flex-col">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ubicación en el Mapa</p>
                 <div className="flex-1 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[300px]">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    src={`https://www.google.com/maps?q=${encodeURIComponent(selectedReport.direccion + ", Medellín, Colombia")}&output=embed`}
-                  ></iframe>
+                  {(() => {
+                    let mapQuery = selectedReport.direccion.trim();
+                    // Fix Colombian addresses: "Calle 34B #33b 05" -> "Calle 34B #33b-05"
+                    mapQuery = mapQuery.replace(/(#\s*[a-zA-Z0-9]+)\s+(\d+)/g, "$1-$2");
+                    if (!mapQuery.toLowerCase().includes('colombia')) {
+                      mapQuery += ", Antioquia, Colombia";
+                    }
+                    return (
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                      ></iframe>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

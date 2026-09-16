@@ -27,7 +27,7 @@ export default function ReportarHueco() {
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Inicializar tema
+  // Inicializar tema y cargar barrio guardado
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedTheme = localStorage.getItem('theme');
@@ -36,6 +36,29 @@ export default function ReportarHueco() {
       } else {
         document.documentElement.classList.remove('dark');
       }
+
+      // Cargar barrio
+      const fetchBarrio = async () => {
+        try {
+          const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+          const userRes = await fetch(`${apiBaseUrl}/api/users/me`, { credentials: "include" });
+          if (userRes.ok) {
+            const user = await userRes.json();
+            if (user.barrio) {
+              setFormData(prev => ({ ...prev, barrio: user.barrio }));
+              return;
+            }
+          }
+        } catch (e) {
+          // ignorar si no está logueado
+        }
+        // Fallback a localStorage
+        const guestBarrio = localStorage.getItem("guestBarrio");
+        if (guestBarrio) {
+          setFormData(prev => ({ ...prev, barrio: guestBarrio }));
+        }
+      };
+      fetchBarrio();
     }
   }, []);
 
@@ -65,7 +88,7 @@ export default function ReportarHueco() {
     }
     
     if (!formData.barrio) {
-      setError("Selecciona el barrio o comuna");
+      setError("No se ha detectado tu barrio. Vuelve a la página principal para seleccionarlo.");
       return;
     }
 
@@ -84,8 +107,14 @@ export default function ReportarHueco() {
       }
 
       // 2. Enviar JSON al backend
+      // Agregar "Envigado" implícitamente a la dirección si no lo tiene
+      let finalDireccion = formData.direccion.trim();
+      if (!finalDireccion.toLowerCase().includes("envigado")) {
+        finalDireccion += ", Envigado";
+      }
+
       const payload = {
-        direccion: formData.direccion,
+        direccion: finalDireccion,
         barrio: formData.barrio,
         descripcion: formData.descripcion,
         imagen_url: imagen_url,
@@ -183,12 +212,12 @@ export default function ReportarHueco() {
             <input
               type="text"
               name="barrio"
-              placeholder="Ej: Laureles, Belén, El Poblado..."
+              placeholder="Autocompletado desde tu perfil"
               value={formData.barrio}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-[15px] focus:outline-none focus:border-orange-500 dark:focus:border-orange-500 transition-colors placeholder-slate-400"
+              readOnly
+              className="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[15px] cursor-not-allowed transition-colors"
             />
+            <p className="text-xs text-slate-400 mt-1">Este barrio se asigna automáticamente según tu configuración. Si deseas cambiarlo, ve a la página principal.</p>
           </div>
 
           {/* DIRECCIÓN */}
@@ -270,12 +299,7 @@ export default function ReportarHueco() {
                 onLocationChange={handleLocationChange}
               />
             </div>
-            {coords.latitud !== null && (
-              <p className="mt-2 text-xs font-bold text-green-600 dark:text-green-400 flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                Registrada: {coords.latitud.toFixed(4)}, {coords.longitud.toFixed(4)}
-              </p>
-            )}
+              {/* El texto de coordenadas fue removido por solicitud del usuario */}
           </div>
 
           {/* ERRORES */}

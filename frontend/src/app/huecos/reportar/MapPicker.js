@@ -155,10 +155,18 @@ export default function MapPicker({
 
   // Busca la dirección escrita y sincroniza el marcador con el primer resultado.
   useEffect(() => {
-    const query = address.trim();
+    let query = address.trim();
+    // Formatear dirección colombiana "Calle 34B #33b 05" -> "Calle 34B #33b-05"
+    query = query.replace(/(#\s*[a-zA-Z0-9]+)\s+(\d+)/g, "$1-$2");
+    
+    // Añadir Antioquia para mayor precisión si no lo tiene
+    if (query.length > 0 && !query.toLowerCase().includes('antioquia') && !query.toLowerCase().includes('colombia')) {
+      query += ", Antioquia";
+    }
+
     const map = mapInstanceRef.current;
 
-    if (status !== "ready" || !map || !apiKey || query.length < 3) return;
+    if (status !== "ready" || !map || !apiKey || query.length < 5) return;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(async () => {
