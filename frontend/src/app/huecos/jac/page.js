@@ -60,14 +60,22 @@ export default function JacPanel() {
           const myJac = fetchedJacs.find(j => j.id === fetchedUser.jac_id);
           if (myJac) {
              setMyJacBarrios(myJac.barrios.map(b => b.toLowerCase()));
+             setCurrentUser({ ...fetchedUser, jac_nombre: myJac.nombre });
           }
-        } else if (fetchedUser && !fetchedUser.barrio) {
-          // Si la JAC no tiene un barrio asignado ni una entidad JAC formal, pedírselo obligatoriamente
-          const { value: barrioInput } = await Swal.fire({
-            title: '¿A qué barrio perteneces?',
-            text: 'Para mostrarte los reportes relevantes, escribe el nombre de tu barrio (Ej: Laureles, Poblado).',
-            input: 'text',
-            inputPlaceholder: 'Nombre del barrio...',
+        } else if (fetchedUser && !fetchedUser.jac_id) {
+          // Generar opciones para el datalist o select
+          let inputOptions = {};
+          fetchedJacs.forEach(j => {
+            inputOptions[j.id] = j.nombre;
+          });
+
+          // Si la JAC no tiene una Comuna asignada, pedírselo obligatoriamente
+          const { value: selectedJacId } = await Swal.fire({
+            title: 'Selecciona tu Comuna / JAC',
+            text: 'Para mostrarte los reportes relevantes, selecciona a qué junta o comuna perteneces.',
+            input: 'select',
+            inputOptions: inputOptions,
+            inputPlaceholder: 'Selecciona una comuna...',
             allowOutsideClick: false,
             allowEscapeKey: false,
             confirmButtonText: 'Guardar y Continuar',
@@ -77,24 +85,28 @@ export default function JacPanel() {
               title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
               htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
               input: 'w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors',
-              confirmButton: 'bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg w-full',
+              confirmButton: 'bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg w-full mt-4',
               validationMessage: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-bold mt-2 p-2 rounded-lg'
             },
             inputValidator: (value) => {
-              if (!value || value.trim() === '') {
-                return '¡Debes escribir un barrio para poder continuar!';
+              if (!value) {
+                return '¡Debes seleccionar una comuna para poder continuar!';
               }
             }
           });
 
-          if (barrioInput) {
+          if (selectedJacId) {
             await fetch(`${apiBaseUrl}/api/users/me`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
-              body: JSON.stringify({ barrio: barrioInput.trim() })
+              body: JSON.stringify({ jac_id: parseInt(selectedJacId, 10) }) // PATCH a jac_id
             });
-            setCurrentUser({ ...fetchedUser, barrio: barrioInput.trim() });
+            const myJac = fetchedJacs.find(j => j.id === parseInt(selectedJacId, 10));
+            if (myJac) {
+               setMyJacBarrios(myJac.barrios.map(b => b.toLowerCase()));
+               setCurrentUser({ ...fetchedUser, jac_id: myJac.id, jac_nombre: myJac.nombre });
+            }
           }
         }
 
@@ -140,10 +152,12 @@ export default function JacPanel() {
     }
   };
 
-  const normalizedUserBarrio = currentUser?.barrio?.trim().toLowerCase();
-  const filteredReports = normalizedUserBarrio
-    ? reports.filter(r => r.barrio?.trim().toLowerCase() === normalizedUserBarrio)
-    : []; // Si no tiene barrio asignado, no ve nada hasta que lo ingrese
+  const filteredReports = myJacBarrios.length > 0
+    ? reports.filter(r => {
+        const reportBarrio = r.barrio?.trim().toLowerCase();
+        return myJacBarrios.includes(reportBarrio);
+      })
+    : []; // Si no tiene JAC o la JAC no tiene barrios, no ve nada
 
   // Aplicar ordenamiento
   const sortedReports = [...filteredReports].sort((a, b) => {
@@ -172,7 +186,7 @@ export default function JacPanel() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-bold rounded-full border border-orange-200 dark:border-orange-500/20 mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-              PANEL JAC {currentUser?.barrio ? `- ${currentUser.barrio.toUpperCase()}` : ''}
+              PANEL JAC {currentUser?.jac_nombre ? `- ${currentUser.jac_nombre.toUpperCase()}` : ''}
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Gestión de Reportes
@@ -402,14 +416,24 @@ export default function JacPanel() {
               <div className="flex-1 flex flex-col">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ubicación en el Mapa</p>
                 <div className="flex-1 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[300px]">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    src={`https://www.google.com/maps?q=${encodeURIComponent(selectedReport.direccion + ", Medellín, Colombia")}&output=embed`}
-                  ></iframe>
+                  {(() => {
+                    let mapQuery = selectedReport.direccion.trim();
+                    // Fix Colombian addresses: "Calle 34B #33b 05" -> "Calle 34B #33b-05"
+                    mapQuery = mapQuery.replace(/(#\s*[a-zA-Z0-9]+)\s+(\d+)/g, "$1-$2");
+                    if (!mapQuery.toLowerCase().includes('colombia')) {
+                      mapQuery += ", Antioquia, Colombia";
+                    }
+                    return (
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                      ></iframe>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

@@ -102,15 +102,17 @@ export default function ReportesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedReport, setSelectedReport] = useState(null);
-  const [searchBarrio, setSearchBarrio] = useState("");
+  
+  const [userBarrio, setUserBarrio] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [liked, setLiked] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
 
   const filteredReports = reports.filter(r => {
-    if (!searchBarrio.trim()) return true;
+    if (!userBarrio || !userBarrio.trim()) return true; // Show all if no barrio selected yet
     const barrio = r.barrio || "";
-    return barrio.toLowerCase().includes(searchBarrio.toLowerCase());
+    return barrio.toLowerCase() === userBarrio.toLowerCase().trim();
   });
 
   // Cargar preferencia de tema de localStorage al inicio
@@ -125,6 +127,168 @@ export default function ReportesPage() {
     }
   }, []);
 
+const BARRIOS_MEDELLIN_BELLO = [
+  // User provided list
+  "Aldea Pablo VI", "Alfonso López", "Andalucía", "Aranjuez", "Aures", "Belalcázar", "Belén Centro", 
+  "Berlín", "Bermejal – Los Álamos", "Blanquizal", "Bolivariana", "Boston", "Boyacá", "Buenos Aires", 
+  "Caicedo", "Calasanz", "Campo Valdés Nº 2", "Carpinelo", "Castilla", "Castropol", "Córdoba", 
+  "Cristo Rey", "Doce de Octubre Nº 1", "Doce de Octubre Nº 2", "El Chagualo", "El Compromiso", 
+  "El Centro", "El Pesebre", "El Playón de Los Comuneros", "El Pomar", "El Raizal", "El Rincón", 
+  "El Salado", "El Tesoro", "Estadio", "Fátima", "Florencia", "Florida Nueva", "Francisco Antonio Zea", 
+  "Fuente Clara", "Golondrinas", "Granizal", "Guayaquil", "Guayabal", "Héctor Abad Gómez", "Kennedy", 
+  "La América", "La Avanzada", "La Castellana", "La Colina", "La Esperanza Nº 2", "La Floresta", 
+  "La Francia", "La Frontera", "La Isla", "La Mansión", "La Milagrosa", "La Mota", "La Paralela", 
+  "La Pilarica", "La Salle", "Las Brisas", "Las Granjas", "Las Lomas", "Las Palmas", "Laureles", 
+  "Loma de Los Bernal", "López de Mesa", "Loreto", "Los Álamos", "Los Ángeles", "Los Balsos", 
+  "Los Pinos", "Manila", "Manrique Central Nº 1", "Manrique Central Nº 2", "Manrique Oriental", 
+  "Maruchenga", "Mirador del Doce", "Miranda", "Moravia", "Moscú Nº 1", "Moscú Nº 2", "Pablo VI", 
+  "Pajarito", "Palenque", "Palermo", "Patio Bonito", "Pedregal", "Picachito", "Popular Nº 1", 
+  "Popular Nº 2", "Prado", "Progreso Nº 2", "Robledo Centro", "Rosales", "San Benito", "San Bernardo", 
+  "San Blas", "San Germán", "San Isidro", "San Javier", "San Martín de Porres", "San Pablo", 
+  "San Pedro", "San Joaquín", "Santa Cruz", "Santa Fe", "Santa Inés", "Santander", 
+  "Santo Domingo Savio Nº 1", "Santo Domingo Savio Nº 2", "Sevilla", "Tejelo", "Toscana", 
+  "Tricentenario", "Trinidad", "Vallejuelos", "Veinte de Julio", "Versalles Nº 1", "Versalles Nº 2", 
+  "Villa del Socorro", "Villa Guadalupe", "Villa Hermosa", "Villa Niza", "Villanueva",
+  "Alcalá", "Altos de Niquía", "Barrio Nuevo", "Bellavista", "Briceño", "Cabañas", "Central", 
+  "Centro de Bello", "Ciudad Fabricato", "Congolo", "El Danubio", "El Ducado", "El Mirador", 
+  "El Pinar", "El Porvenir", "El Rosalpi", "El Rosario", "El Triunfo", "Fontidueño", "Granizal Bello", 
+  "Guasimalito", "Hato Viejo", "La Cabañita", "La Cumbre", "La Estación", "La Gabriela", "La Madera", 
+  "La Mina", "Mánchester", "Marantá", "Mesa", "Minuto de Dios", "Niquía", "Pachelly", "París", "Pérez", 
+  "Santa Ana", "Serramonte", "Suárez", "Sucre", "Tierradentro", "Villas de Occidente", "Camacol"
+].sort();
+
+  const promptForBarrio = async (isChange = false, loggedUser = null) => {
+    const targetUser = loggedUser || currentUser;
+    
+    // Generar opciones para el datalist
+    const datalistOptions = BARRIOS_MEDELLIN_BELLO.map(b => `<option value="${b}"></option>`).join('');
+
+    const { value: barrioInput } = await Swal.fire({
+      title: isChange ? 'Cambiar mi zona' : '¿De qué barrio eres?',
+      html: `
+        <p class="text-sm text-slate-500 mb-4">${isChange ? 'Busca y selecciona tu nueva zona.' : 'Busca y selecciona tu barrio para ver los reportes relevantes.'}</p>
+        <input list="barriosList" id="swal-barrio-input" class="swal2-input" placeholder="Buscar barrio..." value="${userBarrio || ''}">
+        <datalist id="barriosList">
+          ${datalistOptions}
+        </datalist>
+      `,
+      allowOutsideClick: isChange,
+      allowEscapeKey: isChange,
+      showCancelButton: isChange,
+      confirmButtonText: 'Guardar Barrio',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const inputVal = document.getElementById('swal-barrio-input').value.trim();
+        if (!inputVal) {
+          Swal.showValidationMessage('¡Debes seleccionar un barrio!');
+          return false;
+        }
+        if (!BARRIOS_MEDELLIN_BELLO.includes(inputVal)) {
+          Swal.showValidationMessage('Por favor selecciona un barrio válido de la lista desplegable.');
+          return false;
+        }
+        return inputVal;
+      }
+    });
+
+    if (barrioInput) {
+      const formattedBarrio = barrioInput.trim();
+
+      if (targetUser && targetUser.id) {
+        if (isChange) {
+          // FLUJO DE CAMBIO CON VERIFICACIÓN DE CORREO
+          try {
+            const reqRes = await fetch(`${apiBaseUrl}/api/users/me/request-barrio-change`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ barrio: formattedBarrio }),
+            });
+            const reqData = await reqRes.json();
+            
+            if (!reqRes.ok) {
+              return Swal.fire('Error', reqData.error || 'No se pudo solicitar el cambio', 'error');
+            }
+
+            // Pedir el código
+            const { value: codeInput } = await Swal.fire({
+              title: 'Verifica tu identidad',
+              text: 'Hemos enviado un código de 4 dígitos a tu correo.',
+              input: 'text',
+              inputPlaceholder: 'Ej: 1234',
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              showCancelButton: true,
+              confirmButtonText: 'Verificar y Cambiar',
+              cancelButtonText: 'Cancelar',
+              inputValidator: (value) => {
+                if (!value || value.trim().length !== 4) return 'El código debe tener 4 dígitos';
+              }
+            });
+
+            if (codeInput) {
+              const verifyRes = await fetch(`${apiBaseUrl}/api/users/me/verify-barrio-change`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ code: codeInput.trim() }),
+              });
+              const verifyData = await verifyRes.json();
+
+              if (verifyRes.ok) {
+                setUserBarrio(formattedBarrio);
+                setCurrentUser({ ...targetUser, barrio: formattedBarrio });
+                Swal.fire({
+                  icon: 'success',
+                  title: '¡Cambio verificado!',
+                  text: `Ahora estás viendo los reportes de ${formattedBarrio}.`,
+                  timer: 2000,
+                  showConfirmButton: false
+                });
+              } else {
+                Swal.fire('Error', verifyData.error || 'Código incorrecto', 'error');
+              }
+            }
+          } catch (e) {
+            Swal.fire('Error', 'Ocurrió un error de red', 'error');
+          }
+        } else {
+          // PRIMERA VEZ: Guardado directo sin código
+          try {
+            await fetch(`${apiBaseUrl}/api/users/me`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ barrio: formattedBarrio }),
+            });
+            setUserBarrio(formattedBarrio);
+            setCurrentUser({ ...targetUser, barrio: formattedBarrio });
+            Swal.fire({
+              icon: 'success',
+              title: '¡Listo!',
+              text: `Ahora estás viendo los reportes de ${formattedBarrio}.`,
+              timer: 2000,
+              showConfirmButton: false
+            });
+          } catch (e) {
+            console.error("No se pudo guardar el barrio en BD", e);
+          }
+        }
+      } else {
+        // INVITADO (No logueado): Guardar en localStorage
+        setUserBarrio(formattedBarrio);
+        localStorage.setItem("guestBarrio", formattedBarrio);
+        Swal.fire({
+          icon: 'success',
+          title: '¡Listo!',
+          text: `Ahora estás viendo los reportes de ${formattedBarrio}.`,
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }
+    }
+  };
+
   useEffect(() => {
     async function loadReports() {
       try {
@@ -135,8 +299,18 @@ export default function ReportesPage() {
         setReports(data);
         setLikeCounts(Object.fromEntries(data.map((r) => [r.id, r.likes_count || 0])));
 
-        // Intentar cargar los likes del usuario si está logueado
+        // Intentar cargar usuario y likes si está logueado
+        let loggedUser = null;
         try {
+          const userRes = await fetch(`${apiBaseUrl}/api/users/me`, { credentials: "include" });
+          if (userRes.ok) {
+            loggedUser = await userRes.json();
+            setCurrentUser(loggedUser);
+            if (loggedUser.barrio) {
+              setUserBarrio(loggedUser.barrio);
+            }
+          }
+
           const likesRes = await fetch(`${apiBaseUrl}/api/huecos/likes/me`, {
             credentials: "include"
           });
@@ -147,8 +321,20 @@ export default function ReportesPage() {
             setLiked(likedMap);
           }
         } catch (e) {
-          console.warn("No se pudieron cargar los likes (usuario quizás no logueado)");
+          console.warn("Usuario no logueado");
         }
+
+        // Si no hay loggedUser o no tiene barrio, usar el de localStorage
+        if (!loggedUser || !loggedUser.barrio) {
+          const guestBarrio = localStorage.getItem("guestBarrio");
+          if (guestBarrio) {
+            setUserBarrio(guestBarrio);
+          } else {
+            // Prompt inmediato
+            setTimeout(() => promptForBarrio(false, loggedUser), 500);
+          }
+        }
+
       } catch (err) {
         setError("No se pudieron cargar los reportes. Intenta de nuevo más tarde.");
       } finally {
@@ -242,24 +428,26 @@ export default function ReportesPage() {
       {/* Lista de reportes */}
       <section className="max-w-6xl mx-auto px-6 py-8 -mt-12 relative z-20">
         
-        {/* Barra de búsqueda por barrio */}
+        {/* Barrio Selection Badge / Pestañita */}
         <div className="mb-8 flex justify-center">
-          <div className="bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 w-full max-w-lg flex items-center gap-3 transition-colors">
-            <div className="bg-orange-50 dark:bg-orange-500/10 p-2 rounded-xl text-orange-500">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <div className="bg-white dark:bg-slate-800 p-2 pr-4 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 w-full max-w-lg flex items-center justify-between gap-3 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="bg-orange-50 dark:bg-orange-500/10 p-2.5 rounded-xl text-orange-500">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mostrando zona</span>
+                <span className="text-[15px] font-extrabold text-slate-800 dark:text-white capitalize">
+                  {userBarrio || "Todos los barrios"} {!currentUser && <span className="text-[10px] text-slate-400 lowercase ml-1">(invitado)</span>}
+                </span>
+              </div>
             </div>
-            <input 
-              type="text" 
-              placeholder="Buscar por barrio (ej: Laureles, Belén...)"
-              value={searchBarrio}
-              onChange={e => setSearchBarrio(e.target.value)}
-              className="w-full bg-transparent border-none outline-none text-slate-700 dark:text-slate-200 placeholder-slate-400 py-2 font-medium text-[15px]"
-            />
-            {searchBarrio && (
-              <button onClick={() => setSearchBarrio("")} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            )}
+            <button 
+              onClick={() => promptForBarrio(true)}
+              className="text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 px-4 py-2 rounded-xl transition-all"
+            >
+              Cambiar
+            </button>
           </div>
         </div>
 
@@ -361,14 +549,24 @@ export default function ReportesPage() {
               <div className="flex-1 flex flex-col">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ubicación en el Mapa</p>
                 <div className="flex-1 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[300px]">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    src={`https://www.google.com/maps?q=${encodeURIComponent(selectedReport.direccion + ", Medellín, Colombia")}&output=embed`}
-                  ></iframe>
+                  {(() => {
+                    let mapQuery = selectedReport.direccion.trim();
+                    // Fix Colombian addresses: "Calle 34B #33b 05" -> "Calle 34B #33b-05"
+                    mapQuery = mapQuery.replace(/(#\s*[a-zA-Z0-9]+)\s+(\d+)/g, "$1-$2");
+                    if (!mapQuery.toLowerCase().includes('colombia')) {
+                      mapQuery += ", Antioquia, Colombia";
+                    }
+                    return (
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                      ></iframe>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
