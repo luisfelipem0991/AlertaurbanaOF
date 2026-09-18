@@ -6,7 +6,9 @@ import { useState } from 'react';
 
 import Swal from 'sweetalert2';
 
-export default function LoginPage() {
+import { Suspense } from 'react';
+
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -202,5 +204,14 @@ export default function LoginPage() {
 
       </div>
     </main>
+  );
+}
+
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
