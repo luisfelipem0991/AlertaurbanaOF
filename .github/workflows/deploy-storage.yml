@@ -1,0 +1,41 @@
+name: Deploy Frontend to Azure Storage
+
+on:
+  push:
+    branches:
+      - main # O la rama que uses para producción
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Instalar dependencias y compilar
+        working-directory: ./frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_AZURE_MAPS_KEY: ${{ vars.NEXT_PUBLIC_AZURE_MAPS_KEY }}
+          NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${{ vars.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+          NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${{ vars.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET }}
+        run: |
+          npm install
+          npm run build
+
+      - name: Sincronizar archivos con Azure Blob Storage
+        run: |
+          az storage blob sync \
+            --account-name alertaurbanav1 \
+            --account-key "${{ secrets.AZURE_STORAGE_KEY }}" \
+            --container '$web' \
+            --source ./frontend/out \
+            --delete-destination true

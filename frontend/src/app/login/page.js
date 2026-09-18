@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 
 import Swal from 'sweetalert2';
 
-import { Suspense } from 'react';
 
 function LoginContent() {
   const router = useRouter();
@@ -207,10 +206,9 @@ function LoginContent() {
   );
 }
 
-
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900"><div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div>}>
       <LoginContent />
     </Suspense>
   );
