@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import LogoutButton from "@/app/components/LogoutButton";
 import Swal from "sweetalert2";
+import ProgressTracker from "../../components/ProgressTracker";
 
 // Estilos base para UI
 const PRIORITY_OPTIONS = ["alta", "media", "baja"];
@@ -361,52 +362,66 @@ export default function JacPanel() {
 
       {/* MODAL DE DETALLES DEL REPORTE */}
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-4xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-white/40 dark:border-slate-700/50 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 transition-colors">
             
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                Detalle del Reporte #{selectedReport.id}
+            <div className="flex justify-between items-center p-6 sm:px-8 sm:pt-8 border-b border-slate-100/50 dark:border-slate-700/50">
+              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+                Reporte #{selectedReport.id}
+                {selectedReport.prioridad && selectedReport.prioridad !== "descartado" && (
+                  <span className={`text-[11px] uppercase font-extrabold px-2.5 py-1 rounded-md tracking-wider shadow-sm ${
+                    selectedReport.prioridad === 'alta' ? "bg-red-100/80 text-red-700 dark:bg-red-900/50 dark:text-red-400" :
+                    selectedReport.prioridad === 'media' ? "bg-orange-100/80 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400" :
+                    "bg-green-100/80 text-green-700 dark:bg-green-900/50 dark:text-green-400"
+                  }`}>
+                    Prioridad {selectedReport.prioridad}
+                  </span>
+                )}
               </h3>
               <button 
                 onClick={() => setSelectedReport(null)}
-                className="p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 dark:text-slate-300 transition-colors"
+                className="p-2.5 bg-slate-100/50 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 dark:text-slate-300 transition-colors backdrop-blur-sm"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 overflow-y-auto flex-1 flex flex-col md:flex-row gap-6">
+            <div className="p-6 sm:px-8 overflow-y-auto flex-1 flex flex-col md:flex-row gap-8">
               
               {/* Info y Foto */}
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 flex flex-col">
                 {selectedReport.imagen_url ? (
-                  <div className="w-full h-48 md:h-64 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden relative border border-slate-200 dark:border-slate-700">
+                  <div className="w-full h-48 md:h-64 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl overflow-hidden relative border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={selectedReport.imagen_url} alt="Hueco" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="w-full h-48 md:h-64 bg-slate-100 dark:bg-slate-900 rounded-2xl flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                  <div className="w-full h-48 md:h-64 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl flex items-center justify-center border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
                     <span className="text-4xl">📸</span>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between">
+                <ProgressTracker estado={selectedReport.estado} prioridad={selectedReport.prioridad} />
+
+                <div className="flex items-center justify-between mb-4 mt-2">
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación</p>
-                    <p className="text-lg font-bold text-slate-900 dark:text-white">{selectedReport.direccion}</p>
+                    <p className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">{selectedReport.direccion}</p>
                   </div>
-                  <div className="flex flex-col items-center justify-center bg-pink-50 dark:bg-pink-500/10 border border-pink-100 dark:border-pink-500/20 rounded-xl px-4 py-2">
-                    <svg className="w-6 h-6 text-pink-500 dark:text-pink-400 mb-1" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
-                    <span className="text-sm font-black text-pink-600 dark:text-pink-400">{selectedReport.likes_count || 0} Apoyos</span>
+                  <div className="flex flex-col items-end justify-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Apoyo Ciudadano</p>
+                    <div className="flex items-center gap-1.5 bg-pink-50 dark:bg-pink-500/10 border border-pink-100 dark:border-pink-500/20 rounded-full px-3 py-1.5 backdrop-blur-md shadow-sm">
+                      <svg className="w-4 h-4 text-pink-500 dark:text-pink-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
+                      <span className="text-xs font-bold text-pink-600 dark:text-pink-400">{selectedReport.likes_count || 0} apoyos</span>
+                    </div>
                   </div>
                 </div>
                 
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Descripción de la comunidad</p>
-                  <p className="text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 text-sm leading-relaxed">
+                <div className="mb-2 flex-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descripción de la comunidad</p>
+                  <p className="text-slate-600 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-100/50 dark:border-slate-700/50 text-[15px] leading-relaxed backdrop-blur-sm h-full">
                     {selectedReport.descripcion}
                   </p>
                 </div>
@@ -415,30 +430,29 @@ export default function JacPanel() {
               {/* Mapa de Google */}
               <div className="flex-1 flex flex-col">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ubicación en el Mapa</p>
-                <div className="flex-1 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[300px]">
+                <div className="flex-1 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50 min-h-[300px] backdrop-blur-sm">
                   {(() => {
                     let mapQuery = selectedReport.direccion.trim();
-                    // Fix Colombian addresses: "Calle 34B #33b 05" -> "Calle 34B #33b-05"
-                    mapQuery = mapQuery.replace(/(#\s*[a-zA-Z0-9]+)\s+(\d+)/g, "$1-$2");
-                    if (!mapQuery.toLowerCase().includes('colombia')) {
+                    if (!mapQuery.toLowerCase().includes("antioquia")) {
                       mapQuery += ", Antioquia, Colombia";
                     }
+                    const encodedAddress = encodeURIComponent(mapQuery);
                     return (
-                      <iframe
-                        width="100%"
-                        height="100%"
+                      <iframe 
+                        width="100%" 
+                        height="100%" 
                         style={{ border: 0 }}
-                        loading="lazy"
-                        allowFullScreen
-                        src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
-                      ></iframe>
+                        loading="lazy" 
+                        allowFullScreen 
+                        src={`https://www.google.com/maps?q=${encodedAddress}&output=embed`}>
+                      </iframe>
                     );
                   })()}
                 </div>
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="p-6 sm:px-8 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100/50 dark:border-slate-700/50 backdrop-blur-md flex flex-col sm:flex-row gap-4 items-center justify-between">
               {selectedReport.prioridad === "descartado" ? (
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-between">
                   <div className="flex items-center gap-2 text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-500/10 px-4 py-2 rounded-xl font-bold w-full sm:w-auto justify-center">
