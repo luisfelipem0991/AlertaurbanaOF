@@ -56,7 +56,7 @@ app.use("/api", swaggerRoutes);
 app.use("/api", googleAuthRoutes);
 app.use("/api", jacsRoutes);
 
-// Escuchar en 0.0.0.0 es indispensable para contenedores en la nube (Railway)
+// Escuchar en 0.0.0.0 es indispensable para contenedores en la nubee (Railway)
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend running on port ${PORT}`);
 });
