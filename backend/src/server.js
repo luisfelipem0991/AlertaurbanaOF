@@ -22,7 +22,7 @@ app.use(express.json());
 // Lista de orígenes permitidos
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://alertaurbanav1.z13.web.core.windows.net/", // Dominio de tu frontend en Azure
+  "https://alertaurbanav1.z13.web.core.windows.net", // Dominio de tu frontend en Azure
   process.env.FRONTEND_URL                          // Por si configuras otra variable en Railway
 ].filter(Boolean); // Filtra valores nulos o no definidos
 
