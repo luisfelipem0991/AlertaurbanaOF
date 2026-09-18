@@ -1,0 +1,597 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import LogoutButton from "@/app/components/LogoutButton";
+import Swal from "sweetalert2";
+import ProgressTracker from "../../components/ProgressTracker";
+
+// Estilos base para UI
+const PRIORITY_OPTIONS = ["alta", "media", "baja"];
+
+const PRIORITY_STYLE = {
+  alta: { label: "Alta", color: "text-purple-700", bg: "bg-purple-100", border: "border-purple-200" },
+  media: { label: "Media", color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-200" },
+  baja: { label: "Baja", color: "text-purple-700", bg: "bg-slate-50", border: "border-slate-200" },
+};
+
+export default function JacPanel() {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [activeTab, setActiveTab] = useState("pendientes");
+  const [currentUser, setCurrentUser] = useState(null);
+  const [sortBy, setSortBy] = useState("recent");
+  const [myJacBarrios, setMyJacBarrios] = useState([]);
+
+  // Cargar preferencia de tema de localStorage al inicio
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedTheme = localStorage.getItem('theme');
+      if (storedTheme === 'dark' || (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, []);
+
+  // Cargar reportes y usuario desde la DB real
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        
+        let fetchedUser = null;
+        let fetchedJacs = [];
+
+        // Cargar usuario
+        const resUser = await fetch(`${apiBaseUrl}/api/users/me`, { credentials: "include" });
+        if (resUser.ok) {
+          fetchedUser = await resUser.json();
+          setCurrentUser(fetchedUser);
+        }
+
+        // Cargar JACs
+        const resJacs = await fetch(`${apiBaseUrl}/api/jacs`, { credentials: "include" });
+        if (resJacs.ok) {
+          fetchedJacs = await resJacs.json();
+        }
+
+        if (fetchedUser && fetchedUser.jac_id) {
+          const myJac = fetchedJacs.find(j => j.id === fetchedUser.jac_id);
+          if (myJac) {
+             setMyJacBarrios(myJac.barrios.map(b => b.toLowerCase()));
+             setCurrentUser({ ...fetchedUser, jac_nombre: myJac.nombre });
+          }
+        } else if (fetchedUser && !fetchedUser.jac_id) {
+          // Generar opciones para el datalist o select
+          let inputOptions = {};
+          fetchedJacs.forEach(j => {
+            inputOptions[j.id] = j.nombre;
+          });
+
+          // Si la JAC no tiene una Comuna asignada, pedírselo obligatoriamente
+          const { value: selectedJacId } = await Swal.fire({
+            title: 'Selecciona tu Comuna / JAC',
+            text: 'Para mostrarte los reportes relevantes, selecciona a qué junta o comuna perteneces.',
+            input: 'select',
+            inputOptions: inputOptions,
+            inputPlaceholder: 'Selecciona una comuna...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            confirmButtonText: 'Guardar y Continuar',
+            buttonsStyling: false,
+            customClass: {
+              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+              title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
+              htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
+              input: 'w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors',
+              confirmButton: 'bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg w-full mt-4',
+              validationMessage: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm font-bold mt-2 p-2 rounded-lg'
+            },
+            inputValidator: (value) => {
+              if (!value) {
+                return '¡Debes seleccionar una comuna para poder continuar!';
+              }
+            }
+          });
+
+          if (selectedJacId) {
+            await fetch(`${apiBaseUrl}/api/users/me`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ jac_id: parseInt(selectedJacId, 10) }) // PATCH a jac_id
+            });
+            const myJac = fetchedJacs.find(j => j.id === parseInt(selectedJacId, 10));
+            if (myJac) {
+               setMyJacBarrios(myJac.barrios.map(b => b.toLowerCase()));
+               setCurrentUser({ ...fetchedUser, jac_id: myJac.id, jac_nombre: myJac.nombre });
+            }
+          }
+        }
+
+        // Cargar reportes
+        const resReports = await fetch(`${apiBaseUrl}/api/huecos`, { credentials: "include" });
+        if (resReports.ok) {
+          const data = await resReports.json();
+          setReports(data);
+        }
+      } catch (error) {
+        console.error("Error al hacer fetch a la API", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const handleApprove = async (id, prioridad) => {
+    // Actualización optimista de la UI
+    setReports((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, prioridad } : r))
+    );
+    // Cierra el modal si estaba abierto aprobando desde ahí
+    if (selectedReport?.id === id) {
+      setSelectedReport({ ...selectedReport, prioridad });
+    }
+
+    try {
+      // Llamada al backend real de Express
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const res = await fetch(`${apiBaseUrl}/api/huecos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ prioridad }),
+      });
+      if (!res.ok) {
+        console.warn("Fallo al actualizar en el backend Express.");
+      }
+    } catch (error) {
+      console.error("Error al actualizar la prioridad", error);
+    }
+  };
+
+  const filteredReports = myJacBarrios.length > 0
+    ? reports.filter(r => {
+        const reportBarrio = r.barrio?.trim().toLowerCase();
+        return myJacBarrios.includes(reportBarrio);
+      })
+    : []; // Si no tiene JAC o la JAC no tiene barrios, no ve nada
+
+  // Aplicar ordenamiento
+  const sortedReports = [...filteredReports].sort((a, b) => {
+    if (sortBy === 'likes_desc') return (b.likes_count || 0) - (a.likes_count || 0);
+    if (sortBy === 'likes_asc') return (a.likes_count || 0) - (b.likes_count || 0);
+    return new Date(b.created_at) - new Date(a.created_at); // default recent
+  });
+
+  const pendingReports = sortedReports.filter((r) => !r.prioridad);
+  const approvedReports = sortedReports.filter((r) => r.prioridad && r.prioridad !== "descartado");
+  const discardedReports = sortedReports.filter((r) => r.prioridad === "descartado");
+
+  return (
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 font-sans">
+      
+      {/* HEADER */}
+      <header className="relative bg-white dark:bg-slate-900 pt-10 pb-12 px-6 border-b border-slate-200 dark:border-slate-800 transition-colors duration-300 overflow-hidden">
+        {/* Background Patterns and Gradients */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-50 dark:from-slate-950 via-white dark:via-slate-900 to-amber-50 dark:to-slate-950 opacity-100 transition-colors duration-300"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+          <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[60%] bg-orange-400/20 dark:bg-orange-600/20 rounded-full blur-[120px]"></div>
+        </div>
+
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-6 relative z-10">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-bold rounded-full border border-orange-200 dark:border-orange-500/20 mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+              PANEL JAC {currentUser?.jac_nombre ? `- ${currentUser.jac_nombre.toUpperCase()}` : ''}
+            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Gestión de Reportes
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 max-w-xl text-sm leading-relaxed">
+              Revisa los reportes de la comunidad, asígnales una prioridad y apruébalos para enviarlos directamente a la mesa de trabajo de la Alcaldía.
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <LogoutButton className="px-5 py-2.5 rounded-xl bg-white/60 dark:bg-white/10 backdrop-blur-md border border-white/80 dark:border-white/20 text-slate-800 dark:text-white font-bold text-sm shadow-[0_4px_15px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_15px_rgba(0,0,0,0.2)] hover:bg-white hover:shadow-[0_4px_25px_rgba(249,115,22,0.15)] dark:hover:bg-white/20 hover:scale-105 hover:-translate-y-0.5 transition-all duration-300" />
+          </div>
+        </div>
+      </header>
+
+      {/* CONTENIDO PRINCIPAL CON SIDEBAR */}
+      <section className="max-w-6xl mx-auto px-6 py-8 relative z-20 flex flex-col md:flex-row gap-8">
+        
+        {/* SIDEBAR DE NAVEGACIÓN */}
+        <aside className="w-full md:w-64 shrink-0 bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 flex flex-row md:flex-col gap-2 overflow-x-auto self-start">
+          <button 
+            onClick={() => setActiveTab("pendientes")}
+            className={`flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === "pendientes" ? "bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className={`w-2.5 h-2.5 rounded-full ${activeTab === "pendientes" ? "bg-orange-500" : "bg-slate-300 dark:bg-slate-600"}`}></span>
+              Pendientes
+            </div>
+            <span className={`px-2 py-0.5 rounded-lg text-xs ${activeTab === "pendientes" ? "bg-orange-100 dark:bg-orange-500/20" : "bg-slate-100 dark:bg-slate-700"}`}>
+              {pendingReports.length}
+            </span>
+          </button>
+          
+          <button 
+            onClick={() => setActiveTab("aprobados")}
+            className={`flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === "aprobados" ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className={`w-2.5 h-2.5 rounded-full ${activeTab === "aprobados" ? "bg-green-500" : "bg-slate-300 dark:bg-slate-600"}`}></span>
+              Aprobados
+            </div>
+            <span className={`px-2 py-0.5 rounded-lg text-xs ${activeTab === "aprobados" ? "bg-green-100 dark:bg-green-500/20" : "bg-slate-100 dark:bg-slate-700"}`}>
+              {approvedReports.length}
+            </span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("descartados")}
+            className={`flex items-center justify-between px-4 py-3 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === "descartados" ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className={`w-2.5 h-2.5 rounded-full ${activeTab === "descartados" ? "bg-red-500" : "bg-slate-300 dark:bg-slate-600"}`}></span>
+              Descartados
+            </div>
+            <span className={`px-2 py-0.5 rounded-lg text-xs ${activeTab === "descartados" ? "bg-red-100 dark:bg-red-500/20" : "bg-slate-100 dark:bg-slate-700"}`}>
+              {discardedReports.length}
+            </span>
+          </button>
+        </aside>
+
+        {/* ÁREA DE LISTADO DE REPORTES */}
+        <div className="flex-1 w-full">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700">
+              <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+              <p className="mt-4 text-slate-500 font-medium">Cargando reportes de la base de datos...</p>
+            </div>
+          ) : (
+            <div className="animate-in fade-in duration-300">
+              
+              {/* FILTRO DE ORDENAMIENTO GLOBAL */}
+              <div className="flex justify-end mb-6">
+                <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                  <span className="text-sm font-bold text-slate-500 pl-3">Ordenar por:</span>
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-slate-50 dark:bg-slate-900 border-none text-sm font-bold text-slate-700 dark:text-slate-200 py-1.5 px-3 rounded-lg focus:ring-0 cursor-pointer outline-none"
+                  >
+                    <option value="recent">Más recientes</option>
+                    <option value="likes_desc">Mayor apoyo (Corazones)</option>
+                    <option value="likes_asc">Menor apoyo</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* TAB PENDIENTES */}
+              {activeTab === "pendientes" && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">
+                      Pendientes de Aprobación
+                    </h2>
+                  </div>
+                  {pendingReports.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {pendingReports.map((report) => (
+                        <ReportCard 
+                          key={report.id} 
+                          report={report} 
+                          onClick={() => setSelectedReport(report)} 
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                      <div className="text-4xl mb-4">🎉</div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">Todo al día</h3>
+                      <p className="text-slate-500 dark:text-slate-400 mt-2">No hay reportes pendientes por revisar. ¡Gran trabajo!</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB APROBADOS */}
+              {activeTab === "aprobados" && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">
+                      Enviados a la Alcaldía
+                    </h2>
+                  </div>
+                  {approvedReports.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {approvedReports.map((report) => (
+                        <ReportCard 
+                          key={report.id} 
+                          report={report} 
+                          isApproved 
+                          onClick={() => setSelectedReport(report)} 
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                      <p className="text-slate-500 dark:text-slate-400">Aún no has aprobado ningún reporte.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB DESCARTADOS */}
+              {activeTab === "descartados" && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">
+                      Reportes Descartados
+                    </h2>
+                  </div>
+                  {discardedReports.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {discardedReports.map((report) => (
+                        <ReportCard 
+                          key={report.id} 
+                          report={report} 
+                          isDiscarded
+                          onClick={() => setSelectedReport(report)} 
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                      <p className="text-slate-500 dark:text-slate-400">No tienes reportes descartados.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* MODAL DE DETALLES DEL REPORTE */}
+      {selectedReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-4xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-white/40 dark:border-slate-700/50 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 transition-colors">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-6 sm:px-8 sm:pt-8 border-b border-slate-100/50 dark:border-slate-700/50">
+              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+                Reporte #{selectedReport.id}
+                {selectedReport.prioridad && selectedReport.prioridad !== "descartado" && (
+                  <span className={`text-[11px] uppercase font-extrabold px-2.5 py-1 rounded-md tracking-wider shadow-sm ${
+                    selectedReport.prioridad === 'alta' ? "bg-red-100/80 text-red-700 dark:bg-red-900/50 dark:text-red-400" :
+                    selectedReport.prioridad === 'media' ? "bg-orange-100/80 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400" :
+                    "bg-green-100/80 text-green-700 dark:bg-green-900/50 dark:text-green-400"
+                  }`}>
+                    Prioridad {selectedReport.prioridad}
+                  </span>
+                )}
+              </h3>
+              <button 
+                onClick={() => setSelectedReport(null)}
+                className="p-2.5 bg-slate-100/50 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 dark:text-slate-300 transition-colors backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 sm:px-8 overflow-y-auto flex-1 flex flex-col md:flex-row gap-8">
+              
+              {/* Info y Foto */}
+              <div className="flex-1 flex flex-col">
+                {selectedReport.imagen_url ? (
+                  <div className="w-full h-48 md:h-64 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl overflow-hidden relative border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selectedReport.imagen_url} alt="Hueco" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-full h-48 md:h-64 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl flex items-center justify-center border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
+                    <span className="text-4xl">📸</span>
+                  </div>
+                )}
+
+                <ProgressTracker estado={selectedReport.estado} prioridad={selectedReport.prioridad} />
+
+                <div className="flex items-center justify-between mb-4 mt-2">
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación</p>
+                    <p className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">{selectedReport.direccion}</p>
+                  </div>
+                  <div className="flex flex-col items-end justify-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Apoyo Ciudadano</p>
+                    <div className="flex items-center gap-1.5 bg-pink-50 dark:bg-pink-500/10 border border-pink-100 dark:border-pink-500/20 rounded-full px-3 py-1.5 backdrop-blur-md shadow-sm">
+                      <svg className="w-4 h-4 text-pink-500 dark:text-pink-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
+                      <span className="text-xs font-bold text-pink-600 dark:text-pink-400">{selectedReport.likes_count || 0} apoyos</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mb-2 flex-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descripción de la comunidad</p>
+                  <p className="text-slate-600 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-100/50 dark:border-slate-700/50 text-[15px] leading-relaxed backdrop-blur-sm h-full">
+                    {selectedReport.descripcion}
+                  </p>
+                </div>
+              </div>
+
+              {/* Mapa de Google */}
+              <div className="flex-1 flex flex-col">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ubicación en el Mapa</p>
+                <div className="flex-1 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50 min-h-[300px] backdrop-blur-sm">
+                  {(() => {
+                    let mapQuery = selectedReport.direccion.trim();
+                    if (!mapQuery.toLowerCase().includes("antioquia")) {
+                      mapQuery += ", Antioquia, Colombia";
+                    }
+                    const encodedAddress = encodeURIComponent(mapQuery);
+                    return (
+                      <iframe 
+                        width="100%" 
+                        height="100%" 
+                        style={{ border: 0 }}
+                        loading="lazy" 
+                        allowFullScreen 
+                        src={`https://www.google.com/maps?q=${encodedAddress}&output=embed`}>
+                      </iframe>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 sm:px-8 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100/50 dark:border-slate-700/50 backdrop-blur-md flex flex-col sm:flex-row gap-4 items-center justify-between">
+              {selectedReport.prioridad === "descartado" ? (
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-between">
+                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-500/10 px-4 py-2 rounded-xl font-bold w-full sm:w-auto justify-center">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Reporte Descartado
+                  </div>
+                  <button
+                    onClick={() => handleApprove(selectedReport.id, null)}
+                    className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:border-slate-500 hover:text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold transition-all shadow-sm hover:shadow flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    Restaurar a Pendientes
+                  </button>
+                </div>
+              ) : selectedReport.prioridad ? (
+                <div className="flex flex-col items-center sm:items-start gap-1 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-500/10 px-4 py-2 rounded-xl font-bold w-full sm:w-auto justify-center">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    Aprobado por la JAC
+                  </div>
+                  <div className="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-700/50 px-3 py-1.5 rounded-lg text-center w-full mt-1">
+                    Avance de Alcaldía: {
+                      !selectedReport.estado || selectedReport.estado === "pendiente" ? "Por Iniciar" :
+                      selectedReport.estado === "en_proceso" ? "En Ejecución 🚧" :
+                      "Finalizado ✅"
+                    }
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-full sm:w-auto">
+                    <p className="text-xs font-bold text-slate-500 mb-2 uppercase text-center sm:text-left">Asignar Prioridad para Aprobar</p>
+                    <div className="flex flex-wrap gap-2 w-full justify-center sm:justify-start">
+                      {PRIORITY_OPTIONS.map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => handleApprove(selectedReport.id, p)}
+                          className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:border-indigo-500 hover:text-indigo-600 dark:text-slate-300 rounded-lg text-sm font-bold capitalize transition-all shadow-sm hover:shadow"
+                        >
+                          {p}
+                        </button>
+                      ))}
+                      <div className="w-[1px] h-auto bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
+                      <button
+                        onClick={() => handleApprove(selectedReport.id, "descartado")}
+                        className="px-4 py-2 bg-white dark:bg-slate-800 border border-red-200 dark:border-red-900/50 hover:bg-red-50 hover:border-red-500 hover:text-red-600 dark:hover:bg-red-900/20 text-red-500 rounded-lg text-sm font-bold capitalize transition-all shadow-sm hover:shadow flex items-center gap-1.5"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Descartar
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+// Subcomponente de Tarjeta
+function ReportCard({ report, isApproved, isDiscarded, onClick }) {
+  let borderClass = 'border-orange-200 dark:border-orange-500/30';
+  if (isApproved) borderClass = 'border-green-300 dark:border-green-500/50';
+  if (isDiscarded) borderClass = 'border-red-300 dark:border-red-500/50';
+
+  const estadoAlcaldiaLabels = {
+    pendiente: { label: "Por Iniciar", color: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300" },
+    en_proceso: { label: "En Ejecución", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+    resuelto: { label: "Finalizado", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  };
+
+  const alcaldiaStatus = report.estado ? estadoAlcaldiaLabels[report.estado] : estadoAlcaldiaLabels.pendiente;
+
+  return (
+    <div 
+      onClick={onClick}
+      className={`bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-sm dark:shadow-none hover:shadow-2xl dark:hover:shadow-[0_0_20px_rgba(249,115,22,0.15)] hover:-translate-y-1 transition-all duration-300 flex flex-col border-2 relative group cursor-pointer ${borderClass}`}
+    >
+      {/* Imagen real subida por el ciudadano */}
+      <div className="h-40 relative bg-slate-100 dark:bg-slate-900 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={report.imagen_url || "https://via.placeholder.com/400x300?text=Sin+Imagen"}
+          alt={`Hueco en ${report.direccion}`}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+        
+        {/* Apoyos / Likes Badge */}
+        <span className="absolute top-3 left-3 shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-pink-500 dark:text-pink-400 text-xs font-black px-2.5 py-1 rounded-xl shadow-md flex items-center gap-1.5 border border-pink-100 dark:border-pink-500/20 z-10">
+          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
+          {report.likes_count || 0}
+        </span>
+
+        {isApproved && (
+          <span className="absolute top-3 right-3 shrink-0 bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-full capitalize shadow-md z-10">
+            Aprobado: {report.prioridad}
+          </span>
+        )}
+        {isDiscarded && (
+          <span className="absolute top-3 right-3 shrink-0 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full capitalize shadow-md z-10">
+            Descartado
+          </span>
+        )}
+      </div>
+
+      {/* Contenido */}
+      <div className="p-5 flex flex-col gap-3 flex-1">
+        <h3 className="m-0 font-extrabold text-[15px] text-slate-900 dark:text-white line-clamp-1 transition-colors">
+          📍 {report.direccion}
+        </h3>
+        
+        <p className="mt-1 text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2 transition-colors">
+          {report.descripcion}
+        </p>
+
+        {/* Mostrar estado de Alcaldía si está aprobado */}
+        {isApproved && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <span className="text-[10px] uppercase font-bold text-slate-400">Estado Alcaldía:</span>
+            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${alcaldiaStatus.color}`}>
+              {alcaldiaStatus.label}
+            </span>
+          </div>
+        )}
+
+        <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-700">
+          <span className="text-xs font-semibold text-slate-400">
+            Hace {new Date(report.created_at || Date.now()).toLocaleDateString()}
+          </span>
+          <button className="text-orange-500 dark:text-orange-400 text-sm font-bold hover:underline flex items-center gap-1">
+            Ver detalles 
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
