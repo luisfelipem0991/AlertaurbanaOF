@@ -18,6 +18,8 @@ function tiempoRelativo(fechaIso) {
   return `Hace ${dias} día${dias === 1 ? "" : "s"}`;
 }
 
+import ProgressTracker from "@/app/components/ProgressTracker";
+
 function ReportCard({ report, liked, likeCount, onToggleLike, onVerMas }) {
   const status = STATUS_STYLE[report.estado] || STATUS_STYLE.pendiente;
 
@@ -102,6 +104,7 @@ export default function ReportesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedReport, setSelectedReport] = useState(null);
+  const [activeTab, setActiveTab] = useState('comunidad');
   
   const [userBarrio, setUserBarrio] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
@@ -110,10 +113,13 @@ export default function ReportesPage() {
   const [likeCounts, setLikeCounts] = useState({});
 
   const filteredReports = reports.filter(r => {
-    if (!userBarrio || !userBarrio.trim()) return true; // Show all if no barrio selected yet
+    if (!userBarrio || !userBarrio.trim()) return true;
     const barrio = r.barrio || "";
     return barrio.toLowerCase() === userBarrio.toLowerCase().trim();
   });
+
+  const myReports = reports.filter(r => currentUser && r.user_id === currentUser.id);
+  const displayReports = activeTab === 'comunidad' ? filteredReports : myReports;
 
   // Cargar preferencia de tema de localStorage al inicio
   useEffect(() => {
@@ -324,16 +330,18 @@ const BARRIOS_MEDELLIN_BELLO = [
           console.warn("Usuario no logueado");
         }
 
-        // Si no hay loggedUser o no tiene barrio, usar el de localStorage
-        if (!loggedUser || !loggedUser.barrio) {
-          const guestBarrio = localStorage.getItem("guestBarrio");
-          if (guestBarrio) {
-            setUserBarrio(guestBarrio);
-          } else {
-            // Prompt inmediato
+          // Si no está logueado, usar el de localStorage o preguntar
+          if (!loggedUser) {
+            const guestBarrio = localStorage.getItem("guestBarrio");
+            if (guestBarrio) {
+              setUserBarrio(guestBarrio);
+            } else {
+              setTimeout(() => promptForBarrio(false, null), 500);
+            }
+          } else if (!loggedUser.barrio) {
+            // Si está logueado pero no tiene barrio, preguntar (y guardar en BD)
             setTimeout(() => promptForBarrio(false, loggedUser), 500);
           }
-        }
 
       } catch (err) {
         setError("No se pudieron cargar los reportes. Intenta de nuevo más tarde.");
@@ -463,23 +471,42 @@ const BARRIOS_MEDELLIN_BELLO = [
           </div>
         )}
 
-        {!loading && !error && filteredReports.length === 0 && (
+                <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-700">
+          <button 
+            onClick={() => setActiveTab('comunidad')}
+            className={`px-1 pb-4 text-sm sm:text-base font-bold border-b-2 transition-colors ${activeTab === 'comunidad' ? 'border-orange-500 text-orange-600 dark:text-orange-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
+          >
+            Reportes de mi Zona
+          </button>
+          {currentUser && (
+            <button 
+              onClick={() => setActiveTab('mis_reportes')}
+              className={`px-1 pb-4 text-sm sm:text-base font-bold border-b-2 transition-colors ${activeTab === 'mis_reportes' ? 'border-orange-500 text-orange-600 dark:text-orange-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
+            >
+              Mis Reportes
+            </button>
+          )}
+        </div>
+
+        {!loading && !error && displayReports.length === 0 && (
           <div className="bg-white dark:bg-slate-800 rounded-3xl p-12 text-center text-slate-500 dark:text-slate-400 shadow-sm border border-slate-100 dark:border-slate-700 border-dashed transition-colors">
-            <div className="text-4xl mb-4">🛣️</div>
+            <div className="text-4xl mb-4">📍</div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-              {reports.length === 0 ? "Todo limpio" : "No hay resultados"}
+              {activeTab === 'mis_reportes' ? "Aún no tienes reportes" : (reports.length === 0 ? "Todo limpio" : "No hay resultados")}
             </h3>
             <p className="mt-2">
-              {reports.length === 0 
-                ? "Todavía no hay huecos reportados. ¡Sé el primero en reportar uno!" 
-                : "No encontramos reportes para ese barrio."}
+              {activeTab === 'mis_reportes' 
+                ? "Todavía no has reportado ningún hueco. ¡Anímate a contribuir con tu comunidad!" 
+                : (reports.length === 0 
+                  ? "Todavía no hay huecos reportados en la plataforma. ¡Sé el primero en reportar uno!" 
+                  : "No encontramos reportes para esta zona.")}
             </p>
           </div>
         )}
 
-        {!loading && !error && filteredReports.length > 0 && (
+                {!loading && !error && displayReports.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredReports.map((report) => (
+            {displayReports.map((report) => (
               <ReportCard
                 key={report.id}
                 report={report}
@@ -495,26 +522,26 @@ const BARRIOS_MEDELLIN_BELLO = [
 
       {/* Modal de Detalle y Mapa */}
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 transition-colors">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-4xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-white/40 dark:border-slate-700/50 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 transition-colors">
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+            <div className="flex justify-between items-center p-6 sm:px-8 sm:pt-8 border-b border-slate-100/50 dark:border-slate-700/50">
+              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">
                 Detalle del Reporte
               </h3>
               <button
                 onClick={() => setSelectedReport(null)}
-                className="p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 dark:text-slate-300 transition-colors"
+                className="p-2.5 bg-slate-100/50 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 dark:text-slate-300 transition-colors backdrop-blur-sm"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 overflow-y-auto flex-1 flex flex-col md:flex-row gap-6">
+            <div className="p-6 sm:px-8 overflow-y-auto flex-1 flex flex-col md:flex-row gap-8">
               {/* Info y Foto */}
-              <div className="flex-1 space-y-4">
-                <div className="w-full h-48 md:h-64 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden relative border border-slate-200 dark:border-slate-700">
+              <div className="flex-1 flex flex-col">
+                <div className="w-full h-48 md:h-64 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl overflow-hidden relative border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={selectedReport.imagen_url || "https://via.placeholder.com/600x400?text=Sin+Imagen"}
@@ -522,7 +549,7 @@ const BARRIOS_MEDELLIN_BELLO = [
                     className="w-full h-full object-cover"
                   />
                   <span
-                    className="absolute top-4 right-4 text-xs font-bold px-3 py-1.5 rounded-full shadow-md"
+                    className="absolute top-4 right-4 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md"
                     style={{
                       backgroundColor: (STATUS_STYLE[selectedReport.estado] || STATUS_STYLE.pendiente).bg,
                       color: (STATUS_STYLE[selectedReport.estado] || STATUS_STYLE.pendiente).color,
@@ -532,14 +559,16 @@ const BARRIOS_MEDELLIN_BELLO = [
                   </span>
                 </div>
 
-                <div>
+                <ProgressTracker estado={selectedReport.estado} prioridad={selectedReport.prioridad} />
+
+                <div className="mb-6 mt-2">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación Reportada</p>
-                  <p className="text-lg font-extrabold text-slate-900 dark:text-white">{selectedReport.direccion}</p>
+                  <p className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">{selectedReport.direccion}</p>
                 </div>
 
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Descripción</p>
-                  <p className="text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-700 text-sm leading-relaxed">
+                <div className="mb-2 flex-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descripción</p>
+                  <p className="text-slate-600 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-100/50 dark:border-slate-700/50 text-[15px] leading-relaxed backdrop-blur-sm h-full">
                     {selectedReport.descripcion}
                   </p>
                 </div>
@@ -548,7 +577,7 @@ const BARRIOS_MEDELLIN_BELLO = [
               {/* Mapa de Google */}
               <div className="flex-1 flex flex-col">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ubicación en el Mapa</p>
-                <div className="flex-1 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[300px]">
+                <div className="flex-1 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50 min-h-[300px] backdrop-blur-sm">
                   {(() => {
                     let mapQuery = selectedReport.direccion.trim();
                     // Fix Colombian addresses: "Calle 34B #33b 05" -> "Calle 34B #33b-05"
@@ -572,7 +601,7 @@ const BARRIOS_MEDELLIN_BELLO = [
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div className="p-6 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100/50 dark:border-slate-700/50 flex items-center justify-between backdrop-blur-md">
               <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Reportado por: <span className="font-bold text-slate-700 dark:text-slate-300">{selectedReport.reportado_por || "Ciudadano"}</span>
               </span>

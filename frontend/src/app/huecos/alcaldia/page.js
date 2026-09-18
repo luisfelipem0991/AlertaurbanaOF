@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import LogoutButton from "@/app/components/LogoutButton";
+import ProgressTracker from "@/app/components/ProgressTracker";
 import Swal from "sweetalert2";
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend,
@@ -56,6 +57,7 @@ export default function AlcaldiaPanel() {
   const [activeTab, setActiveTab] = useState("pendientes");
   const [timeFilter, setTimeFilter] = useState("todo"); // "mensual", "anual", "todo"
   const [searchUser, setSearchUser] = useState("");
+  const [userPage, setUserPage] = useState(1);
   const [selectedJacFilter, setSelectedJacFilter] = useState("todas");
 
   const [selectedReport, setSelectedReport] = useState(null);
@@ -177,7 +179,7 @@ export default function AlcaldiaPanel() {
       cancelButtonText: 'Cancelar',
       buttonsStyling: false,
       customClass: {
-        popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+        popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6 !w-[800px] !max-w-[95vw]',
         title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
         htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
         confirmButton: 'bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-md mx-2',
@@ -202,7 +204,7 @@ export default function AlcaldiaPanel() {
             text: `El rol ha sido cambiado exitosamente.`,
             buttonsStyling: false,
             customClass: {
-              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6 !w-[800px] !max-w-[95vw]',
               title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
               htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
               confirmButton: 'bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-md'
@@ -217,7 +219,7 @@ export default function AlcaldiaPanel() {
             text: data.error || 'No se pudo cambiar el rol.',
             buttonsStyling: false,
             customClass: {
-              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6 !w-[800px] !max-w-[95vw]',
               title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
               htmlContainer: 'text-slate-500 dark:text-slate-400 text-sm mt-2',
               confirmButton: 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-md'
@@ -230,12 +232,109 @@ export default function AlcaldiaPanel() {
     }
   };
 
+  const handleCreateJacAccount = async () => {
+    if (jacs.length === 0) {
+      Swal.fire("Error", "Primero debes crear al menos una Entidad JAC (Comuna) para asignarle una cuenta.", "error");
+      return;
+    }
+
+    const jacOptions = jacs.map(jac => `<option value="${jac.id}">${jac.nombre}</option>`).join('');
+
+    const { value: formValues } = await Swal.fire({
+      title: 'Crear Cuenta para JAC',
+      width: '800px',
+      html: `
+        <div class="space-y-4 mt-4 text-left">
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Nombre del Representante</label>
+            <input id="swal-jac-user-name" type="text" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium" placeholder="Ej. Juan Pérez">
+          </div>
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Correo Electrónico</label>
+            <input id="swal-jac-user-email" type="email" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium" placeholder="correo@jac.com">
+          </div>
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Contraseña</label>
+            <input id="swal-jac-user-pass" type="password" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium" placeholder="Min. 6 caracteres">
+          </div>
+          <div>
+            <label class="block text-sm font-extrabold text-slate-700 dark:text-slate-300 mb-2">Asignar a Comuna (JAC)</label>
+            <select id="swal-jac-user-id" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm font-medium">
+              <option value="">Selecciona una comuna...</option>
+              ${jacOptions}
+            </select>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Crear Cuenta',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#4f46e5',
+      customClass: {
+        popup: 'rounded-3xl dark:bg-slate-800 dark:text-white !w-[800px] !max-w-[95vw]',
+        confirmButton: 'rounded-xl font-bold px-6 py-2.5',
+        cancelButton: 'rounded-xl font-bold px-6 py-2.5 bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+      },
+      preConfirm: () => {
+        const name = document.getElementById('swal-jac-user-name').value;
+        const email = document.getElementById('swal-jac-user-email').value;
+        const password = document.getElementById('swal-jac-user-pass').value;
+        const jacId = document.getElementById('swal-jac-user-id').value;
+
+        if (!name || !email || !password || !jacId) {
+          Swal.showValidationMessage('Todos los campos son obligatorios');
+          return false;
+        }
+        if (password.length < 6) {
+          Swal.showValidationMessage('La contraseña debe tener al menos 6 caracteres');
+          return false;
+        }
+
+        return { name, email, password, jac_id: jacId };
+      }
+    });
+
+    if (formValues) {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/users/jac`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          credentials: "include",
+          body: JSON.stringify(formValues)
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Error al crear la cuenta");
+        }
+
+        Swal.fire({
+          icon: "success",
+          title: "Cuenta creada",
+          text: "El representante ya puede iniciar sesión",
+          confirmButtonColor: "#10b981",
+          customClass: {
+            popup: 'rounded-3xl dark:bg-slate-800 dark:text-white',
+            confirmButton: 'rounded-xl font-bold px-6 py-2.5'
+          }
+        });
+        
+        window.location.reload(); // Refresh users tab if they switch to it
+      } catch (error) {
+        Swal.fire("Error", error.message, "error");
+      }
+    }
+  };
+
   const handleCreateJac = async () => {
     // Generar opciones del datalist
     const datalistOptions = BARRIOS_MEDELLIN_BELLO.map(b => `<option value="${b}"></option>`).join('');
 
     const { value: formValues } = await Swal.fire({
       title: 'Crear Entidad JAC',
+      width: '800px',
       html: `
         <div class="space-y-4 mt-4 text-left">
           <div>
@@ -267,7 +366,7 @@ export default function AlcaldiaPanel() {
       cancelButtonText: 'Cancelar',
       buttonsStyling: false,
       customClass: {
-        popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+        popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6 !w-[800px] !max-w-[95vw]',
         title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
         confirmButton: 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md mx-2',
         cancelButton: 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold py-3 px-6 rounded-xl transition-all mx-2',
@@ -334,7 +433,7 @@ export default function AlcaldiaPanel() {
             text: 'La Entidad JAC se ha creado exitosamente.',
             buttonsStyling: false,
             customClass: {
-              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+              popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6 !w-[800px] !max-w-[95vw]',
               title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
               confirmButton: 'bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-md'
             }
@@ -387,7 +486,7 @@ export default function AlcaldiaPanel() {
       cancelButtonText: 'Cancelar',
       buttonsStyling: false,
       customClass: {
-        popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6',
+        popup: 'bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 p-6 !w-[800px] !max-w-[95vw]',
         title: 'text-2xl font-extrabold text-slate-900 dark:text-white',
         confirmButton: 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md mx-2',
         cancelButton: 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white font-bold py-3 px-6 rounded-xl transition-all mx-2',
@@ -538,6 +637,10 @@ export default function AlcaldiaPanel() {
     const matchesSearch = u.name.toLowerCase().includes(searchUser.toLowerCase()) || (u.email && u.email.toLowerCase().includes(searchUser.toLowerCase()));
     return matchesSearch;
   });
+
+  const USERS_PER_PAGE = 12;
+  const totalUserPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 font-sans">
@@ -886,7 +989,10 @@ export default function AlcaldiaPanel() {
                         type="text" 
                         placeholder="Buscar usuario..." 
                         value={searchUser}
-                        onChange={(e) => setSearchUser(e.target.value)}
+                        onChange={(e) => {
+                          setSearchUser(e.target.value);
+                          setUserPage(1);
+                        }}
                         className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors text-sm"
                       />
                     </div>
@@ -897,38 +1003,63 @@ export default function AlcaldiaPanel() {
                       <p className="text-slate-500 dark:text-slate-400">No hay usuarios en la comunidad.</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {filteredUsers.map(user => (
-                        <div key={user.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-3 hover:-translate-y-1 transition-all duration-300">
-                          <div className="flex items-start justify-between">
-                            <div className="truncate pr-2">
-                              <h3 className="font-bold text-slate-900 dark:text-white text-sm truncate" title={user.name}>{user.name}</h3>
-                              <p className="text-slate-500 dark:text-slate-400 text-xs truncate" title={user.email}>{user.email}</p>
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {paginatedUsers.map(user => (
+                          <div key={user.id} className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-3 hover:-translate-y-1 transition-all duration-300">
+                            <div className="flex items-start justify-between">
+                              <div className="truncate pr-2">
+                                <h3 className="font-bold text-slate-900 dark:text-white text-sm truncate" title={user.name}>{user.name}</h3>
+                                <p className="text-slate-500 dark:text-slate-400 text-xs truncate" title={user.email}>{user.email}</p>
+                              </div>
+                              <span className={`text-[9px] font-extrabold px-2 py-1 rounded-md tracking-wider uppercase shrink-0 ${
+                                user.role === 'JAC' ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
+                                "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                              }`}>
+                                {user.role}
+                              </span>
                             </div>
-                            <span className={`text-[9px] font-extrabold px-2 py-1 rounded-md tracking-wider uppercase shrink-0 ${
-                              user.role === 'JAC' ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
-                              "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                            }`}>
-                              {user.role}
-                            </span>
+                            
+                            <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
+                                Rol asignado
+                              </label>
+                              <select
+                                value={user.role}
+                                onChange={(e) => handleUserRoleChange(user.id, e.target.value, user.name)}
+                                className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2 font-semibold focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 cursor-pointer transition-colors"
+                              >
+                                <option value="USER">USER (Ciudadano)</option>
+                                <option value="JAC">JAC (Líder Comunal)</option>
+                              </select>
+                            </div>
                           </div>
-                          
-                          <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700">
-                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
-                              Rol asignado
-                            </label>
-                            <select
-                              value={user.role}
-                              onChange={(e) => handleUserRoleChange(user.id, e.target.value, user.name)}
-                              className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-600 text-slate-900 dark:text-white text-xs rounded-lg px-3 py-2 font-semibold focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 cursor-pointer transition-colors"
-                            >
-                              <option value="USER">USER (Ciudadano)</option>
-                              <option value="JAC">JAC (Líder Comunal)</option>
-                            </select>
-                          </div>
+                        ))}
+                      </div>
+
+                      {/* Controles de Paginación */}
+                      {totalUserPages > 1 && (
+                        <div className="flex justify-center items-center mt-8 gap-4">
+                          <button
+                            onClick={() => setUserPage(p => Math.max(1, p - 1))}
+                            disabled={userPage === 1}
+                            className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                          </button>
+                          <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                            Página {userPage} de {totalUserPages}
+                          </span>
+                          <button
+                            onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
+                            disabled={userPage === totalUserPages}
+                            className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          </button>
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -939,12 +1070,20 @@ export default function AlcaldiaPanel() {
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Gestión de Entidades JAC</h2>
                     
-                    <button 
-                      onClick={handleCreateJac}
-                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all hover:-translate-y-0.5"
-                    >
-                      + Crear JAC
-                    </button>
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={handleCreateJacAccount}
+                        className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl shadow-sm transition-all hover:-translate-y-0.5 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+                      >
+                        + Crear Cuenta JAC
+                      </button>
+                      <button 
+                        onClick={handleCreateJac}
+                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all hover:-translate-y-0.5"
+                      >
+                        + Crear Comuna
+                      </button>
+                    </div>
                   </div>
 
                   {jacs.length === 0 ? (
@@ -996,53 +1135,64 @@ export default function AlcaldiaPanel() {
 
       {/* MODAL DE DETALLES DEL REPORTE */}
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-4xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-white/40 dark:border-slate-700/50 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 transition-colors">
             
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-700">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="flex justify-between items-center p-6 sm:px-8 sm:pt-8 border-b border-slate-100/50 dark:border-slate-700/50">
+              <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
                 Reporte #{selectedReport.id}
-                <span className={`text-[10px] uppercase font-extrabold px-2 py-1 rounded-md tracking-wider ${
-                  selectedReport.prioridad === 'alta' ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                  selectedReport.prioridad === 'media' ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
-                  "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                <span className={`text-[11px] uppercase font-extrabold px-2.5 py-1 rounded-md tracking-wider shadow-sm ${
+                  selectedReport.prioridad === 'alta' ? "bg-red-100/80 text-red-700 dark:bg-red-900/50 dark:text-red-400" :
+                  selectedReport.prioridad === 'media' ? "bg-orange-100/80 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400" :
+                  "bg-green-100/80 text-green-700 dark:bg-green-900/50 dark:text-green-400"
                 }`}>
                   Prioridad {selectedReport.prioridad}
                 </span>
               </h3>
               <button 
                 onClick={() => setSelectedReport(null)}
-                className="p-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 dark:text-slate-300 transition-colors"
+                className="p-2.5 bg-slate-100/50 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full text-slate-500 dark:text-slate-300 transition-colors backdrop-blur-sm"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 overflow-y-auto flex-1 flex flex-col md:flex-row gap-6">
+            <div className="p-6 sm:px-8 overflow-y-auto flex-1 flex flex-col md:flex-row gap-8">
               
               {/* Info y Foto */}
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 flex flex-col">
                 {selectedReport.imagen_url ? (
-                  <div className="w-full h-48 md:h-64 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden relative border border-slate-200 dark:border-slate-700">
+                  <div className="w-full h-48 md:h-64 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl overflow-hidden relative border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={selectedReport.imagen_url} alt="Hueco" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="w-full h-48 md:h-64 bg-slate-100 dark:bg-slate-900 rounded-2xl flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                  <div className="w-full h-48 md:h-64 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl flex items-center justify-center border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
                     <span className="text-4xl">📸</span>
                   </div>
                 )}
 
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{selectedReport.direccion}</p>
+                <ProgressTracker estado={selectedReport.estado} prioridad={selectedReport.prioridad} />
+
+                <div className="flex items-center justify-between mb-4 mt-2">
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación</p>
+                    <p className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">{selectedReport.direccion}</p>
+                  </div>
+                  <div className="flex flex-col items-end justify-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Apoyo Ciudadano</p>
+                    <div className="flex items-center gap-1.5 bg-pink-50 dark:bg-pink-500/10 border border-pink-100 dark:border-pink-500/20 rounded-full px-3 py-1.5 backdrop-blur-md shadow-sm">
+                      <svg className="w-4 h-4 text-pink-500 dark:text-pink-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" /></svg>
+                      <span className="text-xs font-bold text-pink-600 dark:text-pink-400">{selectedReport.likes_count || 0} apoyos</span>
+                    </div>
+                  </div>
                 </div>
                 
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Descripción de la comunidad</p>
-                  <p className="text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 text-sm leading-relaxed">
+                <div className="mb-2 flex-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descripción de la comunidad</p>
+                  <p className="text-slate-600 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-100/50 dark:border-slate-700/50 text-[15px] leading-relaxed backdrop-blur-sm h-full">
                     {selectedReport.descripcion}
                   </p>
                 </div>
@@ -1051,7 +1201,7 @@ export default function AlcaldiaPanel() {
               {/* Mapa de Google */}
               <div className="flex-1 flex flex-col">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ubicación en el Mapa</p>
-                <div className="flex-1 bg-slate-100 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 min-h-[300px]">
+                <div className="flex-1 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl overflow-hidden border border-slate-200/50 dark:border-slate-700/50 min-h-[300px] backdrop-blur-sm">
                   {(() => {
                     let mapQuery = selectedReport.direccion.trim();
                     // Fix Colombian addresses: "Calle 34B #33b 05" -> "Calle 34B #33b-05"
@@ -1075,7 +1225,7 @@ export default function AlcaldiaPanel() {
             </div>
 
             {/* Modal Footer (Controls) */}
-            <div className="p-6 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-700 flex flex-wrap gap-3 items-center justify-end">
+            <div className="p-6 sm:px-8 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100/50 dark:border-slate-700/50 backdrop-blur-md flex flex-wrap gap-3 items-center justify-end">
               {(!selectedReport.estado || selectedReport.estado === "pendiente") && (
                 <button
                   onClick={() => handleSetStatus(selectedReport.id, "en_proceso")}

@@ -35,7 +35,7 @@ export async function getHuecos(req, res) {
   try {
     const result = await pool.query(
       `SELECT h.id, h.direccion, h.barrio, h.descripcion, h.imagen_url, h.estado,
-              h.prioridad, h.created_at, u.name AS reportado_por,
+              h.prioridad, h.created_at, h.user_id, u.name AS reportado_por,
               COALESCE(l.like_count, 0)::int AS likes_count
        FROM huecos h
        JOIN users u ON u.id = h.user_id
