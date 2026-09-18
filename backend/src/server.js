@@ -44,7 +44,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rutas de la API
+// Rutas de la APII
 app.use("/", healthRoutes);
 app.use("/api", loginRoutes);
 app.use("/api", registerRoutes);
