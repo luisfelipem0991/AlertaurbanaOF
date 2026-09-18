@@ -22,6 +22,11 @@ jobs:
 
       - name: Instalar dependencias y compilar
         working-directory: ./frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_AZURE_MAPS_KEY: ${{ vars.NEXT_PUBLIC_AZURE_MAPS_KEY }}
+          NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${{ vars.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+          NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${{ vars.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET }}
         run: |
           npm install
           npm run build
