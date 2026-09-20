@@ -37,7 +37,8 @@ export async function login(req, res) {
       { expiresIn: "1h" }
     );
 
-    const isProduction = process.env.NODE_ENV === "production";
+    const envNode = String(process.env.NODE_ENV).replace(/['" ]/g, "");
+    const isProduction = envNode === "production";
     res.cookie("alertaurbana_session", token, {
       httpOnly: true,
       sameSite: isProduction ? "none" : "lax",
@@ -67,7 +68,8 @@ export async function login(req, res) {
 }
 
 export function logout(req, res) {
-  const isProduction = process.env.NODE_ENV === "production";
+  const envNode = String(process.env.NODE_ENV).replace(/['" ]/g, "");
+  const isProduction = envNode === "production";
   res.clearCookie("alertaurbana_session", {
     httpOnly: true,
     sameSite: isProduction ? "none" : "lax",

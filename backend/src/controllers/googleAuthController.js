@@ -43,7 +43,8 @@ export async function startGoogleAuth(req, res) {
       prompt: "select_account",
     }).toString();
 
-    const isProduction = process.env.NODE_ENV === "production";
+    const envNode = String(process.env.NODE_ENV).replace(/['" ]/g, "");
+    const isProduction = envNode === "production";
     res.cookie(OAUTH_STATE_COOKIE, state, {
       httpOnly: true,
       sameSite: isProduction ? "none" : "lax",
@@ -103,17 +104,18 @@ export async function googleAuthCallback(req, res) {
     const user = await findOrCreateGoogleUser({ sub: profile.sub, email, name });
     
     const destinations = { 
-      USER: "/huecos", 
-      JAC: "/huecos/jac", 
-      ALCALDIA: "/huecos/alcaldia", 
-      ADMIN: "/admin", 
-      SUPERADMIN: "/admin" 
+      USER: "/huecos/", 
+      JAC: "/huecos/jac/", 
+      ALCALDIA: "/huecos/alcaldia/", 
+      ADMIN: "/admin/", 
+      SUPERADMIN: "/admin/" 
     };
     
     if (!destinations[user.role]) throw new Error("El usuario no tiene un rol válido");
 
     // Limpiar estado
-    const isProduction = process.env.NODE_ENV === "production";
+    const envNode = String(process.env.NODE_ENV).replace(/['" ]/g, "");
+    const isProduction = envNode === "production";
     res.clearCookie(OAUTH_STATE_COOKIE, {
       path: "/",
       sameSite: isProduction ? "none" : "lax",

@@ -1,25 +1,30 @@
 import dotenv from "dotenv";
-dotenv.config();
+
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 import pkg from "pg";
-
 const { Pool } = pkg;
 
-console.log("DATABASE_URL:", process.env.DATABASE_URL);
+// Validación de la variable de entorno
+if (!process.env.DATABASE_URL) {
+  console.error("ERROR CRÍTICO: DATABASE_URL no está definida en las variables de entorno.");
+} else {
+  console.log("DATABASE_URL configurada: SÍ");
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false,
+    rejectUnauthorized: false, // Requerido para conexiones SSL con Neon
   },
 });
 
-pool.query("SELECT NOW()")
-  .then(r => console.log("DB OK:", r.rows))
-  .catch(e => console.error("DB FAIL:", e));
-
-console.log("HOST:", pool.options.host);
-console.log("PORT:", pool.options.port);
-console.log("DATABASE:", pool.options.database);
+// Prueba de conexión inicial
+pool
+  .query("SELECT NOW()")
+  .then(() => console.log("Conexión a PostgreSQL (Neon) establecida con éxito."))
+  .catch((e) => console.error("Error al conectar con la base de datos:", e.message));
 
 export default pool;
