@@ -37,10 +37,11 @@ export async function login(req, res) {
       { expiresIn: "1h" }
     );
 
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("alertaurbana_session", token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
       maxAge: 60 * 60 * 1000,
       path: "/",
     });
@@ -66,10 +67,11 @@ export async function login(req, res) {
 }
 
 export function logout(req, res) {
+  const isProduction = process.env.NODE_ENV === "production";
   res.clearCookie("alertaurbana_session", {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
     path: "/",
   });
   return res.json({ message: "Sesión cerrada" });

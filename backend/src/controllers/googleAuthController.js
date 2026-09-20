@@ -43,10 +43,11 @@ export async function startGoogleAuth(req, res) {
       prompt: "select_account",
     }).toString();
 
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie(OAUTH_STATE_COOKIE, state, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
       maxAge: 10 * 60 * 1000,
       path: "/",
     });
@@ -112,14 +113,18 @@ export async function googleAuthCallback(req, res) {
     if (!destinations[user.role]) throw new Error("El usuario no tiene un rol válido");
 
     // Limpiar estado
-    res.clearCookie(OAUTH_STATE_COOKIE, { path: "/" });
+    const isProduction = process.env.NODE_ENV === "production";
+    res.clearCookie(OAUTH_STATE_COOKIE, {
+      path: "/",
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
+    });
 
-    // Setear JWT
     const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
     res.cookie("alertaurbana_session", token, {
       httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
       maxAge: 60 * 60 * 1000,
       path: "/",
     });
