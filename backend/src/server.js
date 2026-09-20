@@ -44,7 +44,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rutas de la APII
+// Rutas de la API
 app.use("/", healthRoutes);
 app.use("/api", loginRoutes);
 app.use("/api", registerRoutes);
@@ -56,7 +56,7 @@ app.use("/api", swaggerRoutes);
 app.use("/api", googleAuthRoutes);
 app.use("/api", jacsRoutes);
 
-// Escuchar en 0.0.0.0 es indispensable para contenedores en la nubee (Railway)
+// Escuchar en 0.0.0.0 es indispensable para contenedores en la nube (Railway)
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Backend running on port ${PORT}`);
 });
