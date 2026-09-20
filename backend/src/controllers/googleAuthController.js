@@ -103,11 +103,11 @@ export async function googleAuthCallback(req, res) {
     const user = await findOrCreateGoogleUser({ sub: profile.sub, email, name });
     
     const destinations = { 
-      USER: "/huecos", 
-      JAC: "/huecos/jac", 
-      ALCALDIA: "/huecos/alcaldia", 
-      ADMIN: "/admin", 
-      SUPERADMIN: "/admin" 
+      USER: "/huecos/", 
+      JAC: "/huecos/jac/", 
+      ALCALDIA: "/huecos/alcaldia/", 
+      ADMIN: "/admin/", 
+      SUPERADMIN: "/admin/" 
     };
     
     if (!destinations[user.role]) throw new Error("El usuario no tiene un rol válido");
