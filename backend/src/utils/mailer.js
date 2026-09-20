@@ -4,11 +4,15 @@ let transporter = null;
 
 function getTransporter() {
   if (!transporter) {
+    const rawPass = process.env.GMAIL_APP_PASSWORD || "";
+    // Elimina comillas (simples o dobles) y espacios que el usuario pudo haber puesto por error
+    const cleanPass = rawPass.replace(/['" ]/g, "");
+
     transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
+        user: process.env.GMAIL_USER?.replace(/['" ]/g, ""),
+        pass: cleanPass,
       },
     });
   }
