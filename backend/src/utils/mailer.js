@@ -4,15 +4,19 @@ let transporter = null;
 
 function getTransporter() {
   if (!transporter) {
-    const rawPass = process.env.GMAIL_APP_PASSWORD || "";
-    // Elimina comillas (simples o dobles) y espacios que el usuario pudo haber puesto por error
-    const cleanPass = rawPass.replace(/['" ]/g, "");
+    const user = process.env.GMAIL_USER?.replace(/['" ]/g, "");
+    const clientId = process.env.GMAIL_CLIENT_ID?.replace(/['" ]/g, "");
+    const clientSecret = process.env.GMAIL_CLIENT_SECRET?.replace(/['" ]/g, "");
+    const refreshToken = process.env.GMAIL_REFRESH_TOKEN?.replace(/['" ]/g, "");
 
     transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.GMAIL_USER?.replace(/['" ]/g, ""),
-        pass: cleanPass,
+        type: "OAuth2",
+        user: user,
+        clientId: clientId,
+        clientSecret: clientSecret,
+        refreshToken: refreshToken,
       },
     });
   }
