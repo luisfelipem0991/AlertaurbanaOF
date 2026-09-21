@@ -11,9 +11,10 @@ function getTransporter() {
 
     transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      // Forzar IPv4 en Railway para evitar ENETUNREACH
+      port: 587,
+      secure: false, // false for 587, true for 465
+      requireTLS: true,
+      // Forzar IPv4
       tls: {
         rejectUnauthorized: false
       },
