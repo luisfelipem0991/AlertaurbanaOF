@@ -2,6 +2,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
+import dns from "dns";
+
+// Fix para Railway: Forzar IPv4 para evitar ENETUNREACH en conexiones (ej. Nodemailer -> smtp.gmail.com IPv6)
+dns.setDefaultResultOrder("ipv4first");
 import healthRoutes from "./routes/healthRoutes.js";
 import loginRoutes from "./routes/loginRoutes.js";
 import registerRoutes from "./routes/registerRoutes.js";

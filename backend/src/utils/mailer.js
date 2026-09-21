@@ -10,7 +10,13 @@ function getTransporter() {
     const refreshToken = process.env.GMAIL_REFRESH_TOKEN?.replace(/['" ]/g, "");
 
     transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      // Forzar IPv4 en Railway para evitar ENETUNREACH
+      tls: {
+        rejectUnauthorized: false
+      },
       auth: {
         type: "OAuth2",
         user: user,
