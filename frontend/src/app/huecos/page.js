@@ -166,34 +166,28 @@ const BARRIOS_MEDELLIN_BELLO = [
   const promptForBarrio = async (isChange = false, loggedUser = null) => {
     const targetUser = loggedUser || currentUser;
     
-    // Generar opciones para el datalist
-    const datalistOptions = BARRIOS_MEDELLIN_BELLO.map(b => `<option value="${b}"></option>`).join('');
+    // Generar opciones para el select nativo de SweetAlert
+    const inputOptions = {};
+    BARRIOS_MEDELLIN_BELLO.forEach(b => {
+      inputOptions[b] = b;
+    });
 
     const { value: barrioInput } = await Swal.fire({
       title: isChange ? 'Cambiar mi zona' : '¿De qué barrio eres?',
-      html: `
-        <p class="text-sm text-slate-500 mb-4">${isChange ? 'Busca y selecciona tu nueva zona.' : 'Busca y selecciona tu barrio para ver los reportes relevantes.'}</p>
-        <input list="barriosList" id="swal-barrio-input" class="swal2-input" placeholder="Buscar barrio..." value="${userBarrio || ''}">
-        <datalist id="barriosList">
-          ${datalistOptions}
-        </datalist>
-      `,
+      text: isChange ? 'Selecciona tu nueva zona de la lista.' : 'Selecciona tu barrio para ver los reportes relevantes.',
+      input: 'select',
+      inputOptions: inputOptions,
+      inputPlaceholder: 'Selecciona un barrio',
+      inputValue: userBarrio || '',
       allowOutsideClick: isChange,
       allowEscapeKey: isChange,
       showCancelButton: isChange,
       confirmButtonText: 'Guardar Barrio',
       cancelButtonText: 'Cancelar',
-      preConfirm: () => {
-        const inputVal = document.getElementById('swal-barrio-input').value.trim();
-        if (!inputVal) {
-          Swal.showValidationMessage('¡Debes seleccionar un barrio!');
-          return false;
+      inputValidator: (value) => {
+        if (!value) {
+          return '¡Debes seleccionar un barrio!';
         }
-        if (!BARRIOS_MEDELLIN_BELLO.includes(inputVal)) {
-          Swal.showValidationMessage('Por favor selecciona un barrio válido de la lista desplegable.');
-          return false;
-        }
-        return inputVal;
       }
     });
 
