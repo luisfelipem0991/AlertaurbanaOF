@@ -2,6 +2,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
+import dns from "dns";
+
+// Fix para Railway: Forzar IPv4 para evitar ENETUNREACH en conexiones (ej. Nodemailer -> smtp.gmail.com IPv6)
+dns.setDefaultResultOrder("ipv4first");
 import healthRoutes from "./routes/healthRoutes.js";
 import loginRoutes from "./routes/loginRoutes.js";
 import registerRoutes from "./routes/registerRoutes.js";
@@ -11,6 +15,7 @@ import userByIdRoutes from "./routes/userByIdRoutes.js";
 import huecosRoutes from "./routes/huecosRoutes.js";
 import swaggerRoutes from "./routes/swaggerRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
+import authTokenRoutes from "./routes/authTokenRoutes.js";
 import jacsRoutes from "./routes/jacsRoutes.js";
 
 const app = express();
@@ -54,6 +59,7 @@ app.use("/api", userByIdRoutes);
 app.use("/api", huecosRoutes);
 app.use("/api", swaggerRoutes);
 app.use("/api", googleAuthRoutes);
+app.use("/api", authTokenRoutes);
 app.use("/api", jacsRoutes);
 
 // Escuchar en 0.0.0.0 es indispensable para contenedores en la nube (Railway)

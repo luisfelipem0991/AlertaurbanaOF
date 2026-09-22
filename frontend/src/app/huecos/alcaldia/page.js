@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import LogoutButton from "@/app/components/LogoutButton";
 import ProgressTracker from "@/app/components/ProgressTracker";
 import Swal from "sweetalert2";
+import { useAuth } from "@/context/AuthContext";
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer
@@ -50,6 +51,7 @@ function sortByPriority(reports) {
 }
 
 export default function AlcaldiaPanel() {
+  const { authFetch } = useAuth();
   const [reports, setReports] = useState([]);
   const [users, setUsers] = useState([]);
   const [jacs, setJacs] = useState([]);
@@ -77,10 +79,8 @@ export default function AlcaldiaPanel() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-        
         // Fetch Reports
-        const resReports = await fetch(`${apiBaseUrl}/api/huecos`, { credentials: "include" });
+        const resReports = await authFetch("/api/huecos");
         if (resReports.ok) {
           const data = await resReports.json();
           setReports(data);
@@ -89,7 +89,7 @@ export default function AlcaldiaPanel() {
         }
 
         // Fetch Users
-        const resUsers = await fetch(`${apiBaseUrl}/api/users`, { credentials: "include" });
+        const resUsers = await authFetch("/api/users");
         if (resUsers.ok) {
           const dataUsers = await resUsers.json();
           // Filter to show only USER and JAC
@@ -98,7 +98,7 @@ export default function AlcaldiaPanel() {
         }
 
         // Fetch JACs
-        const resJacs = await fetch(`${apiBaseUrl}/api/jacs`, { credentials: "include" });
+        const resJacs = await authFetch("/api/jacs");
         if (resJacs.ok) {
           const dataJacs = await resJacs.json();
           setJacs(dataJacs);
@@ -124,11 +124,9 @@ export default function AlcaldiaPanel() {
     }
 
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const res = await fetch(`${apiBaseUrl}/api/huecos/${id}`, {
+      const res = await authFetch(`/api/huecos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ estado }),
       });
       if (!res.ok) {
@@ -189,11 +187,9 @@ export default function AlcaldiaPanel() {
 
     if (result.isConfirmed) {
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-        const res = await fetch(`${apiBaseUrl}/api/users/${userId}/role`, {
+        const res = await authFetch(`/api/users/${userId}/role`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({ role: newRole, jac_id: selectedJacId }),
         });
 
@@ -296,12 +292,11 @@ export default function AlcaldiaPanel() {
 
     if (formValues) {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/users/jac`, {
+        const res = await authFetch("/api/users/jac", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          credentials: "include",
           body: JSON.stringify(formValues)
         });
         
@@ -412,11 +407,9 @@ export default function AlcaldiaPanel() {
 
     if (formValues) {
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-        const res = await fetch(`${apiBaseUrl}/api/jacs`, {
+        const res = await authFetch("/api/jacs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             nombre: formValues.name,
             descripcion: formValues.desc,
@@ -532,11 +525,9 @@ export default function AlcaldiaPanel() {
 
     if (formValues) {
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-        const res = await fetch(`${apiBaseUrl}/api/jacs/${jac.id}`, {
+        const res = await authFetch(`/api/jacs/${jac.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             nombre: formValues.name,
             descripcion: formValues.desc,

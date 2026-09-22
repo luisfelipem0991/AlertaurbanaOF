@@ -3,6 +3,11 @@ import jwt from "jsonwebtoken";
 export const SESSION_COOKIE = "alertaurbana_session";
 
 function getToken(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+
   const cookie = req.headers.cookie
     ?.split(";")
     .map((value) => value.trim())
@@ -10,8 +15,7 @@ function getToken(req) {
 
   if (cookie) return decodeURIComponent(cookie.slice(SESSION_COOKIE.length + 1));
 
-  const authHeader = req.headers.authorization;
-  return authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  return null;
 }
 
 // Verifica el header "Authorization: Bearer <token>" y agrega req.user = { id, role }.

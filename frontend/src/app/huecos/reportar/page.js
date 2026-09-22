@@ -8,11 +8,13 @@ import { uploadImageToCloudinary } from "../../../lib/cloudinary";
 
 // MapPicker se carga solo en el cliente (usa window y el SDK de Google Maps)
 const MapPicker = dynamic(() => import("./MapPicker"), { ssr: false });
+import { useAuth } from "@/context/AuthContext";
 
 
 
 export default function ReportarHueco() {
   const router = useRouter();
+  const { currentUser, authFetch } = useAuth();
 
   const [formData, setFormData] = useState({
     descripcion: "",
@@ -37,30 +39,17 @@ export default function ReportarHueco() {
         document.documentElement.classList.remove('dark');
       }
 
-      // Cargar barrio
-      const fetchBarrio = async () => {
-        try {
-          const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-          const userRes = await fetch(`${apiBaseUrl}/api/users/me`, { credentials: "include" });
-          if (userRes.ok) {
-            const user = await userRes.json();
-            if (user.barrio) {
-              setFormData(prev => ({ ...prev, barrio: user.barrio }));
-              return;
-            }
-          }
-        } catch (e) {
-          // ignorar si no está logueado
-        }
-        // Fallback a localStorage
+      // Cargar barrio del usuario o fallback a localStorage
+      if (currentUser?.barrio) {
+        setFormData(prev => ({ ...prev, barrio: currentUser.barrio }));
+      } else {
         const guestBarrio = localStorage.getItem("guestBarrio");
         if (guestBarrio) {
           setFormData(prev => ({ ...prev, barrio: guestBarrio }));
         }
-      };
-      fetchBarrio();
+      }
     }
-  }, []);
+  }, [currentUser]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -120,14 +109,12 @@ export default function ReportarHueco() {
         imagen_url: imagen_url,
       };
 
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const res = await fetch(`${apiBaseUrl}/api/huecos`, {
+      const res = await authFetch("/api/huecos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
-        credentials: "include",
       });
 
       const result = await res.json();

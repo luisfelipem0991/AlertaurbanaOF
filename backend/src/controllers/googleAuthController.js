@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
-import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 import { getGoogleAuthConfig, verifyGoogleIdToken } from "../utils/googleAuth.js";
+import { createTicket } from "./authTokenController.js";
 
 const OAUTH_STATE_COOKIE = "alertaurbana_google_oauth_state";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
@@ -21,7 +21,7 @@ async function findOrCreateGoogleUser({ sub, email, name }) {
   }
 
   const created = await pool.query(
-    "INSERT INTO users (name, email, password, google_sub) VALUES ($1, $2, NULL, $3) RETURNING id, name, role",
+    "INSERT INTO users (name, email, password, google_sub, role) VALUES ($1, $2, NULL, $3, 'USER') RETURNING id, name, role",
     [name.slice(0, 255), email, sub]
   );
   return created.rows[0];
@@ -102,18 +102,8 @@ export async function googleAuthCallback(req, res) {
     const name = typeof profile.name === "string" && profile.name.trim() ? profile.name.trim() : email.split("@")[0];
     
     const user = await findOrCreateGoogleUser({ sub: profile.sub, email, name });
-    
-    const destinations = { 
-      USER: "/huecos/", 
-      JAC: "/huecos/jac/", 
-      ALCALDIA: "/huecos/alcaldia/", 
-      ADMIN: "/admin/", 
-      SUPERADMIN: "/admin/" 
-    };
-    
-    if (!destinations[user.role]) throw new Error("El usuario no tiene un rol válido");
 
-    // Limpiar estado
+    // Limpiar cookie de estado OAuth
     const envNode = String(process.env.NODE_ENV).replace(/['" ]/g, "");
     const isProduction = envNode === "production";
     res.clearCookie(OAUTH_STATE_COOKIE, {
@@ -122,19 +112,15 @@ export async function googleAuthCallback(req, res) {
       secure: isProduction,
     });
 
-    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    res.cookie("alertaurbana_session", token, {
-      httpOnly: true,
-      sameSite: isProduction ? "none" : "lax",
-      secure: isProduction,
-      maxAge: 60 * 60 * 1000,
-      path: "/",
-    });
+    // Generar ticket temporal de un solo uso (expira en 60s)
+    const ticket = createTicket(user.id);
 
-    return res.redirect(`${FRONTEND_URL}${destinations[user.role]}`);
+    // Redirigir al frontend con el ticket (NO con cookie de sesión)
+    return res.redirect(`${FRONTEND_URL}/auth/callback/?ticket=${ticket}`);
 
   } catch (error) {
     console.error("GOOGLE AUTH CALLBACK ERROR:", error);
     return res.redirect(`${FRONTEND_URL}/login?error=google_login`);
   }
 }
+

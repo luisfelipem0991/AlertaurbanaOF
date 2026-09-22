@@ -7,6 +7,16 @@ jest.mock("next/navigation", () => ({
       push: jest.fn(),
     };
   },
+  useSearchParams() {
+    return new URLSearchParams();
+  },
+}));
+
+jest.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({
+    login: jest.fn(),
+    currentUser: null,
+  }),
 }));
 
 describe("Login Page", () => {

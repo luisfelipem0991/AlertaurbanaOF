@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import LogoutButton from "@/app/components/LogoutButton";
 import Swal from "sweetalert2";
 import ProgressTracker from "../../components/ProgressTracker";
+import { useAuth } from "@/context/AuthContext";
 
 // Estilos base para UI
 const PRIORITY_OPTIONS = ["alta", "media", "baja"];
@@ -15,11 +16,12 @@ const PRIORITY_STYLE = {
 };
 
 export default function JacPanel() {
+  const { currentUser, authFetch, updateUser } = useAuth();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
   const [activeTab, setActiveTab] = useState("pendientes");
-  const [currentUser, setCurrentUser] = useState(null);
+  const [localUser, setLocalUser] = useState(null);
   const [sortBy, setSortBy] = useState("recent");
   const [myJacBarrios, setMyJacBarrios] = useState([]);
 
@@ -39,20 +41,20 @@ export default function JacPanel() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-        
-        let fetchedUser = null;
+        let fetchedUser = currentUser;
         let fetchedJacs = [];
 
-        // Cargar usuario
-        const resUser = await fetch(`${apiBaseUrl}/api/users/me`, { credentials: "include" });
-        if (resUser.ok) {
-          fetchedUser = await resUser.json();
-          setCurrentUser(fetchedUser);
+        // Si no tenemos el usuario en contexto, intentar cargarlo
+        if (!fetchedUser) {
+          const resUser = await authFetch("/api/users/me");
+          if (resUser.ok) {
+            fetchedUser = await resUser.json();
+            updateUser(fetchedUser);
+          }
         }
 
         // Cargar JACs
-        const resJacs = await fetch(`${apiBaseUrl}/api/jacs`, { credentials: "include" });
+        const resJacs = await authFetch("/api/jacs");
         if (resJacs.ok) {
           fetchedJacs = await resJacs.json();
         }
@@ -61,7 +63,7 @@ export default function JacPanel() {
           const myJac = fetchedJacs.find(j => j.id === fetchedUser.jac_id);
           if (myJac) {
              setMyJacBarrios(myJac.barrios.map(b => b.toLowerCase()));
-             setCurrentUser({ ...fetchedUser, jac_nombre: myJac.nombre });
+             updateUser({ jac_nombre: myJac.nombre });
           }
         } else if (fetchedUser && !fetchedUser.jac_id) {
           // Generar opciones para el datalist o select
@@ -97,22 +99,21 @@ export default function JacPanel() {
           });
 
           if (selectedJacId) {
-            await fetch(`${apiBaseUrl}/api/users/me`, {
+            await authFetch("/api/users/me", {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ jac_id: parseInt(selectedJacId, 10) }) // PATCH a jac_id
+              body: JSON.stringify({ jac_id: parseInt(selectedJacId, 10) })
             });
             const myJac = fetchedJacs.find(j => j.id === parseInt(selectedJacId, 10));
             if (myJac) {
                setMyJacBarrios(myJac.barrios.map(b => b.toLowerCase()));
-               setCurrentUser({ ...fetchedUser, jac_id: myJac.id, jac_nombre: myJac.nombre });
+               updateUser({ jac_id: myJac.id, jac_nombre: myJac.nombre });
             }
           }
         }
 
         // Cargar reportes
-        const resReports = await fetch(`${apiBaseUrl}/api/huecos`, { credentials: "include" });
+        const resReports = await authFetch("/api/huecos");
         if (resReports.ok) {
           const data = await resReports.json();
           setReports(data);
@@ -124,7 +125,7 @@ export default function JacPanel() {
       }
     }
     fetchData();
-  }, []);
+  }, [currentUser]);
 
   const handleApprove = async (id, prioridad) => {
     // Actualización optimista de la UI
@@ -137,12 +138,9 @@ export default function JacPanel() {
     }
 
     try {
-      // Llamada al backend real de Express
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const res = await fetch(`${apiBaseUrl}/api/huecos/${id}`, {
+      const res = await authFetch(`/api/huecos/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ prioridad }),
       });
       if (!res.ok) {

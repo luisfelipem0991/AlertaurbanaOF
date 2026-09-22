@@ -291,7 +291,7 @@ export default function MapPicker({
           No se pudo cargar Azure Maps
         </p>
         <p style={{ margin: 0, fontSize: "12px" }}>
-          Verifica que la clave de suscripción (Subscription Key) de Azure Maps sea válida.
+          Verifica que la clave sea válida y que los orígenes (CORS) estén habilitados en el recurso Azure Maps del portal de Azure.
         </p>
       </div>
     );
