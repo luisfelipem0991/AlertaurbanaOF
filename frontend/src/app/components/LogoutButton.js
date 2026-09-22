@@ -3,23 +3,18 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Swal from "sweetalert2";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LogoutButton({ style, className }) {
   const router = useRouter();
+  const { logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
 
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const response = await fetch(`${apiBaseUrl}/api/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (!response.ok) throw new Error("Logout failed");
-
+      await logout();
       router.replace("/login");
       router.refresh();
     } catch {

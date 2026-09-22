@@ -11,6 +11,7 @@ import userByIdRoutes from "./routes/userByIdRoutes.js";
 import huecosRoutes from "./routes/huecosRoutes.js";
 import swaggerRoutes from "./routes/swaggerRoutes.js";
 import googleAuthRoutes from "./routes/googleAuthRoutes.js";
+import authTokenRoutes from "./routes/authTokenRoutes.js";
 import jacsRoutes from "./routes/jacsRoutes.js";
 
 const app = express();
@@ -54,6 +55,7 @@ app.use("/api", userByIdRoutes);
 app.use("/api", huecosRoutes);
 app.use("/api", swaggerRoutes);
 app.use("/api", googleAuthRoutes);
+app.use("/api", authTokenRoutes);
 app.use("/api", jacsRoutes);
 
 // Escuchar en 0.0.0.0 es indispensable para contenedores en la nube (Railway)

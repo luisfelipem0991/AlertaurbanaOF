@@ -1,3 +1,5 @@
+require("@testing-library/jest-dom");
+
 global.Response = {
   json: (data, options = {}) => ({
     json: async () => data,

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 import Swal from 'sweetalert2';
 
@@ -10,6 +11,7 @@ import Swal from 'sweetalert2';
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
 
   // ✅ ESTADOS
   const [email, setEmail] = useState("");
@@ -24,31 +26,7 @@ function LoginContent() {
     setIsLoading(true);
 
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-      const res = await fetch(`${apiBaseUrl}/api/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        Swal.fire({
-          icon: 'error',
-          title: 'No se pudo iniciar sesión',
-          text: data.error,
-          confirmButtonColor: '#f97316'
-        });
-        setIsLoading(false);
-        return;
-      }
+      const data = await login(email, password);
 
       const destinations = {
         USER: "/huecos",
@@ -76,8 +54,8 @@ function LoginContent() {
     } catch (error) {
       Swal.fire({
         icon: 'error',
-        title: 'Error de conexión',
-        text: 'Error al comunicarse con el servidor.',
+        title: 'No se pudo iniciar sesión',
+        text: error.message || 'Error al comunicarse con el servidor.',
         confirmButtonColor: '#f97316'
       });
       setIsLoading(false);

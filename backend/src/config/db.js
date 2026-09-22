@@ -21,10 +21,27 @@ const pool = new Pool({
   },
 });
 
+async function initDb() {
+  try {
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub VARCHAR(255) UNIQUE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS refresh_version INTEGER DEFAULT 0;
+      ALTER TABLE users ALTER COLUMN password DROP NOT NULL;
+      ALTER TABLE users ALTER COLUMN role SET DEFAULT 'USER';
+    `);
+    console.log("Esquema de base de datos verificado y actualizado con éxito.");
+  } catch (err) {
+    console.warn("Aviso al verificar esquema de base de datos:", err.message);
+  }
+}
+
 // Prueba de conexión inicial
 pool
   .query("SELECT NOW()")
-  .then(() => console.log("Conexión a PostgreSQL (Neon) establecida con éxito."))
+  .then(() => {
+    console.log("Conexión a PostgreSQL (Neon) establecida con éxito.");
+    initDb();
+  })
   .catch((e) => console.error("Error al conectar con la base de datos:", e.message));
 
 export default pool;

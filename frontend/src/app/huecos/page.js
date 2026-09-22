@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import { useEffect, useState } from "react";
 import LogoutButton from "@/app/components/LogoutButton";
 import { STATUS_STYLE } from "@/lib/mockHuecos";
+import { useAuth } from "@/context/AuthContext";
 
 function tiempoRelativo(fechaIso) {
   if (!fechaIso) return "Hace un momento";
@@ -98,7 +99,7 @@ function ReportCard({ report, liked, likeCount, onToggleLike, onVerMas }) {
 }
 
 export default function ReportesPage() {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const { currentUser, authFetch, updateUser } = useAuth();
 
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +108,6 @@ export default function ReportesPage() {
   const [activeTab, setActiveTab] = useState('comunidad');
   
   const [userBarrio, setUserBarrio] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
 
   const [liked, setLiked] = useState({});
   const [likeCounts, setLikeCounts] = useState({});
@@ -204,10 +204,9 @@ const BARRIOS_MEDELLIN_BELLO = [
         if (isChange) {
           // FLUJO DE CAMBIO CON VERIFICACIÓN DE CORREO
           try {
-            const reqRes = await fetch(`${apiBaseUrl}/api/users/me/request-barrio-change`, {
+            const reqRes = await authFetch(`/api/users/me/request-barrio-change`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              credentials: "include",
               body: JSON.stringify({ barrio: formattedBarrio }),
             });
             const reqData = await reqRes.json();
@@ -233,17 +232,16 @@ const BARRIOS_MEDELLIN_BELLO = [
             });
 
             if (codeInput) {
-              const verifyRes = await fetch(`${apiBaseUrl}/api/users/me/verify-barrio-change`, {
+              const verifyRes = await authFetch(`/api/users/me/verify-barrio-change`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include",
                 body: JSON.stringify({ code: codeInput.trim() }),
               });
               const verifyData = await verifyRes.json();
 
               if (verifyRes.ok) {
                 setUserBarrio(formattedBarrio);
-                setCurrentUser({ ...targetUser, barrio: formattedBarrio });
+                updateUser({ barrio: formattedBarrio });
                 Swal.fire({
                   icon: 'success',
                   title: '¡Cambio verificado!',
@@ -261,14 +259,13 @@ const BARRIOS_MEDELLIN_BELLO = [
         } else {
           // PRIMERA VEZ: Guardado directo sin código
           try {
-            await fetch(`${apiBaseUrl}/api/users/me`, {
+            await authFetch(`/api/users/me`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              credentials: "include",
               body: JSON.stringify({ barrio: formattedBarrio }),
             });
             setUserBarrio(formattedBarrio);
-            setCurrentUser({ ...targetUser, barrio: formattedBarrio });
+            updateUser({ barrio: formattedBarrio });
             Swal.fire({
               icon: 'success',
               title: '¡Listo!',
@@ -298,50 +295,41 @@ const BARRIOS_MEDELLIN_BELLO = [
   useEffect(() => {
     async function loadReports() {
       try {
-        const res = await fetch(`${apiBaseUrl}/api/huecos`);
+        const res = await authFetch("/api/huecos");
         if (!res.ok) throw new Error("No se pudieron cargar los reportes");
 
         const data = await res.json();
         setReports(data);
         setLikeCounts(Object.fromEntries(data.map((r) => [r.id, r.likes_count || 0])));
 
-        // Intentar cargar usuario y likes si está logueado
-        let loggedUser = null;
-        try {
-          const userRes = await fetch(`${apiBaseUrl}/api/users/me`, { credentials: "include" });
-          if (userRes.ok) {
-            loggedUser = await userRes.json();
-            setCurrentUser(loggedUser);
-            if (loggedUser.barrio) {
-              setUserBarrio(loggedUser.barrio);
-            }
+        // Si el usuario está autenticado, cargar sus likes y barrio
+        if (currentUser) {
+          if (currentUser.barrio) {
+            setUserBarrio(currentUser.barrio);
+          } else {
+            setTimeout(() => promptForBarrio(false, currentUser), 500);
           }
 
-          const likesRes = await fetch(`${apiBaseUrl}/api/huecos/likes/me`, {
-            credentials: "include"
-          });
-          if (likesRes.ok) {
-            const likedIds = await likesRes.json();
-            const likedMap = {};
-            likedIds.forEach(id => likedMap[id] = true);
-            setLiked(likedMap);
+          try {
+            const likesRes = await authFetch("/api/huecos/likes/me");
+            if (likesRes.ok) {
+              const likedIds = await likesRes.json();
+              const likedMap = {};
+              likedIds.forEach(id => likedMap[id] = true);
+              setLiked(likedMap);
+            }
+          } catch (e) {
+            console.warn("Error cargando likes del usuario");
           }
-        } catch (e) {
-          console.warn("Usuario no logueado");
+        } else {
+          // Si es invitado, usar barrio de localStorage o preguntar
+          const guestBarrio = localStorage.getItem("guestBarrio");
+          if (guestBarrio) {
+            setUserBarrio(guestBarrio);
+          } else {
+            setTimeout(() => promptForBarrio(false, null), 500);
+          }
         }
-
-          // Si no está logueado, usar el de localStorage o preguntar
-          if (!loggedUser) {
-            const guestBarrio = localStorage.getItem("guestBarrio");
-            if (guestBarrio) {
-              setUserBarrio(guestBarrio);
-            } else {
-              setTimeout(() => promptForBarrio(false, null), 500);
-            }
-          } else if (!loggedUser.barrio) {
-            // Si está logueado pero no tiene barrio, preguntar (y guardar en BD)
-            setTimeout(() => promptForBarrio(false, loggedUser), 500);
-          }
 
       } catch (err) {
         setError("No se pudieron cargar los reportes. Intenta de nuevo más tarde.");
@@ -351,7 +339,7 @@ const BARRIOS_MEDELLIN_BELLO = [
     }
 
     loadReports();
-  }, [apiBaseUrl]);
+  }, [currentUser]);
 
   const toggleLike = async (id) => {
     // Actualización optimista de 1 en 1 sin depender de 'prev' para evitar bugs de React Strict Mode
@@ -362,9 +350,8 @@ const BARRIOS_MEDELLIN_BELLO = [
     setLikeCounts({ ...likeCounts, [id]: currentCount + (!isCurrentlyLiked ? 1 : -1) });
 
     try {
-      const res = await fetch(`${apiBaseUrl}/api/huecos/${id}/like`, {
-        method: "POST",
-        credentials: "include"
+      const res = await authFetch(`/api/huecos/${id}/like`, {
+        method: "POST"
       });
       
       if (!res.ok) throw new Error("Error al guardar el apoyo");
@@ -379,11 +366,11 @@ const BARRIOS_MEDELLIN_BELLO = [
       setLiked({ ...liked, [id]: isCurrentlyLiked });
       setLikeCounts({ ...likeCounts, [id]: currentCount });
       Swal.fire({
-      icon: 'warning',
-      title: 'Atención',
-      text: 'Inicia sesión para poder apoyar un reporte.',
-      confirmButtonColor: '#f97316'
-    });
+        icon: 'warning',
+        title: 'Atención',
+        text: 'Inicia sesión para poder apoyar un reporte.',
+        confirmButtonColor: '#f97316'
+      });
     }
   };
 
