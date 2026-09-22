@@ -377,7 +377,7 @@ const BARRIOS_MEDELLIN_BELLO = [
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans transition-colors duration-300">
       {/* Header Moderno con colores de la landing (Naranja/Ámbar/Slate) */}
-      <header className="relative pt-16 pb-28 px-6 overflow-hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-300">
+      <header className="relative pt-10 pb-20 sm:pt-12 sm:pb-24 md:pt-16 md:pb-28 px-4 sm:px-6 overflow-hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 transition-colors duration-300">
         {/* Background Patterns and Gradients */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-br from-orange-50 dark:from-slate-950 via-white dark:via-slate-900 to-amber-50 dark:to-slate-950 opacity-100 transition-colors duration-300"></div>
@@ -394,7 +394,7 @@ const BARRIOS_MEDELLIN_BELLO = [
               <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)]"></span>
               Alerta Urbana Activa
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-5 leading-tight transition-colors duration-300">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-5 leading-tight transition-colors duration-300">
               Construyamos juntos <br className="hidden md:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 dark:from-orange-400 dark:to-amber-400">
                 calles más seguras
@@ -458,7 +458,7 @@ const BARRIOS_MEDELLIN_BELLO = [
           </div>
         )}
 
-                <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex gap-3 sm:gap-6 mb-6 sm:mb-8 border-b border-slate-200 dark:border-slate-700">
           <button 
             onClick={() => setActiveTab('comunidad')}
             className={`px-1 pb-4 text-sm sm:text-base font-bold border-b-2 transition-colors ${activeTab === 'comunidad' ? 'border-orange-500 text-orange-600 dark:text-orange-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'}`}
@@ -510,7 +510,7 @@ const BARRIOS_MEDELLIN_BELLO = [
       {/* Modal de Detalle y Mapa */}
       {selectedReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-[2.5rem] w-full max-w-4xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-white/40 dark:border-slate-700/50 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 transition-colors">
+          <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] w-full max-w-4xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-white/40 dark:border-slate-700/50 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300 transition-colors">
             {/* Modal Header */}
             <div className="flex justify-between items-center p-6 sm:px-8 sm:pt-8 border-b border-slate-100/50 dark:border-slate-700/50">
               <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">
@@ -525,7 +525,7 @@ const BARRIOS_MEDELLIN_BELLO = [
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 sm:px-8 overflow-y-auto flex-1 flex flex-col md:flex-row gap-8">
+            <div className="p-6 sm:px-8 overflow-y-auto flex-1 flex flex-col md:flex-row gap-4 sm:gap-6 md:gap-8">
               {/* Info y Foto */}
               <div className="flex-1 flex flex-col">
                 <div className="w-full h-48 md:h-64 bg-slate-100/50 dark:bg-slate-900/50 rounded-3xl overflow-hidden relative border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">

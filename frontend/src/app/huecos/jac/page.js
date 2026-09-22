@@ -173,7 +173,7 @@ export default function JacPanel() {
     <main className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 font-sans">
       
       {/* HEADER */}
-      <header className="relative bg-white dark:bg-slate-900 pt-10 pb-12 px-6 border-b border-slate-200 dark:border-slate-800 transition-colors duration-300 overflow-hidden">
+      <header className="relative bg-white dark:bg-slate-900 pt-8 pb-10 px-4 sm:pt-10 sm:pb-12 sm:px-6 border-b border-slate-200 dark:border-slate-800 transition-colors duration-300 overflow-hidden">
         {/* Background Patterns and Gradients */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-br from-orange-50 dark:from-slate-950 via-white dark:via-slate-900 to-amber-50 dark:to-slate-950 opacity-100 transition-colors duration-300"></div>
@@ -290,7 +290,7 @@ export default function JacPanel() {
                       ))}
                     </div>
                   ) : (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
                       <div className="text-4xl mb-4">🎉</div>
                       <h3 className="text-lg font-bold text-slate-900 dark:text-white">Todo al día</h3>
                       <p className="text-slate-500 dark:text-slate-400 mt-2">No hay reportes pendientes por revisar. ¡Gran trabajo!</p>
@@ -319,7 +319,7 @@ export default function JacPanel() {
                       ))}
                     </div>
                   ) : (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
                       <p className="text-slate-500 dark:text-slate-400">Aún no has aprobado ningún reporte.</p>
                     </div>
                   )}
@@ -346,7 +346,7 @@ export default function JacPanel() {
                       ))}
                     </div>
                   ) : (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
                       <p className="text-slate-500 dark:text-slate-400">No tienes reportes descartados.</p>
                     </div>
                   )}

@@ -773,7 +773,7 @@ export default function AlcaldiaPanel() {
                       {pendientes.map(r => <KanbanCard key={r.id} report={r} onClick={() => setSelectedReport(r)} onStatusChange={handleSetStatus} />)}
                     </div>
                   ) : (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
                       <p className="text-slate-500 dark:text-slate-400">No hay obras pendientes por iniciar.</p>
                     </div>
                   )}
@@ -805,7 +805,7 @@ export default function AlcaldiaPanel() {
                       {enProceso.map(r => <KanbanCard key={r.id} report={r} onClick={() => setSelectedReport(r)} onStatusChange={handleSetStatus} />)}
                     </div>
                   ) : (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
                       <p className="text-slate-500 dark:text-slate-400">Sin obras en ejecución actualmente.</p>
                     </div>
                   )}
@@ -837,7 +837,7 @@ export default function AlcaldiaPanel() {
                       {resueltos.map(r => <KanbanCard key={r.id} report={r} onClick={() => setSelectedReport(r)} />)}
                     </div>
                   ) : (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
                       <p className="text-slate-500 dark:text-slate-400">No hay obras terminadas registradas.</p>
                     </div>
                   )}
@@ -873,7 +873,7 @@ export default function AlcaldiaPanel() {
                   </div>
 
                   {statsReports.length === 0 ? (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
                       <p className="text-slate-500 dark:text-slate-400">No hay datos en el periodo seleccionado.</p>
                     </div>
                   ) : (
@@ -883,7 +883,7 @@ export default function AlcaldiaPanel() {
                       <div className="col-span-1 md:col-span-2 bg-gradient-to-br from-green-500 to-emerald-700 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between">
                         <div>
                           <p className="text-emerald-100 font-medium mb-1">Obras Finalizadas (Reparadas)</p>
-                          <h3 className="text-4xl font-extrabold">{totalReparados}</h3>
+                          <h3 className="text-3xl sm:text-4xl font-extrabold">{totalReparados}</h3>
                         </div>
                         <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md">
                           <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
@@ -990,7 +990,7 @@ export default function AlcaldiaPanel() {
                   </div>
 
                   {filteredUsers.length === 0 ? (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
                       <p className="text-slate-500 dark:text-slate-400">No hay usuarios en la comunidad.</p>
                     </div>
                   ) : (
@@ -1061,7 +1061,7 @@ export default function AlcaldiaPanel() {
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                     <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">Gestión de Entidades JAC</h2>
                     
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <button 
                         onClick={handleCreateJacAccount}
                         className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl shadow-sm transition-all hover:-translate-y-0.5 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
@@ -1078,7 +1078,7 @@ export default function AlcaldiaPanel() {
                   </div>
 
                   {jacs.length === 0 ? (
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center border border-slate-200 dark:border-slate-700 border-dashed">
                       <p className="text-slate-500 dark:text-slate-400">No hay Entidades JAC creadas.</p>
                     </div>
                   ) : (

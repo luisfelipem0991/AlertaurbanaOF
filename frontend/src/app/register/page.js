@@ -335,7 +335,7 @@ export default function RegisterPage() {
                   inputMode="numeric"
                   maxLength={4}
                   placeholder="0000"
-                  className="w-full px-4 py-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all text-center text-4xl tracking-[0.5em] font-bold"
+                  className="w-full px-4 py-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all text-center text-2xl sm:text-4xl tracking-[0.3em] sm:tracking-[0.5em] font-bold"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
                 />
