@@ -573,7 +573,7 @@ const BARRIOS_MEDELLIN_BELLO = [
                         style={{ border: 0 }}
                         loading="lazy"
                         allowFullScreen
-                        src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                        src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=m&z=15&output=embed&iwloc=near`}
                       ></iframe>
                     );
                   })()}
