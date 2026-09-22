@@ -316,14 +316,14 @@ const BARRIOS_MEDELLIN_BELLO = [
             console.warn("Error cargando likes del usuario");
           }
         } else {
-          // Si es invitado, usar barrio de localStorage o preguntar
-          const guestBarrio = localStorage.getItem("guestBarrio");
-          if (guestBarrio) {
-            setUserBarrio(guestBarrio);
-          } else {
-            setTimeout(() => promptForBarrio(false, null), 500);
+            // Si es invitado, usar barrio de localStorage si existe, pero NO forzar el popup
+            const guestBarrio = localStorage.getItem("guestBarrio");
+            if (guestBarrio) {
+              setUserBarrio(guestBarrio);
+            } else {
+              setUserBarrio(""); // Ver todos por defecto
+            }
           }
-        }
 
       } catch (err) {
         setError("No se pudieron cargar los reportes. Intenta de nuevo más tarde.");
