@@ -1,0 +1,34 @@
+# ==============================================================================
+# Alerta Urbana - Archivo de Propietarios de Código (CODEOWNERS)
+# Define la responsabilidad de revisión por rutas críticas del proyecto.
+# ==============================================================================
+
+# Propietarios globales de todo el repositorio
+*                       @IvanF-24 @luisfelipem0991
+
+# Backend - Servidor, API REST, controladores y modelos
+/backend/               @IvanF-24 @luisfelipem0991
+
+# Frontend - Interfaz de usuario Next.js, componentes y páginas
+/frontend/              @IvanF-24 @luisfelipem0991
+
+# Rutas Críticas: Autenticación, tokens y middleware de seguridad
+/backend/src/controllers/authTokenController.js      @IvanF-24 @luisfelipem0991
+/backend/src/controllers/googleAuthController.js     @IvanF-24 @luisfelipem0991
+/backend/src/controllers/loginController.js          @IvanF-24 @luisfelipem0991
+/backend/src/controllers/registerController.js       @IvanF-24 @luisfelipem0991
+/backend/src/middleware/auth.js                      @IvanF-24 @luisfelipem0991
+
+# Rutas Críticas: Configuración de Base de Datos (Neon PostgreSQL)
+/backend/src/config/db.js                            @IvanF-24 @luisfelipem0991
+
+# Infraestructura y CI/CD (GitHub Actions, Docker)
+/.github/workflows/     @IvanF-24 @luisfelipem0991
+/docker-compose.yml     @IvanF-24 @luisfelipem0991
+
+# Documentación del proyecto
+/docs/                  @IvanF-24 @luisfelipem0991
+README.md               @IvanF-24 @luisfelipem0991
+CONTRIBUTING.md         @IvanF-24 @luisfelipem0991
+SECURITY.md             @IvanF-24 @luisfelipem0991
+
