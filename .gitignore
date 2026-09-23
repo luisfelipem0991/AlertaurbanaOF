@@ -1,0 +1,80 @@
+# ==============================================================================
+# Alerta Urbana - .gitignore
+# Exclusión de archivos no versionables (secretos, dependencias, builds y temporales)
+# ==============================================================================
+
+# Dependencias
+node_modules/
+*/node_modules/
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Secretos y variables de entorno sensibles
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+backend/.env
+frontend/.env
+frontend/.env.local
+# Mantener ejemplos versionados
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# Builds, empaquetados y artefactos de compilación
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Pruebas y reportes de cobertura
+coverage/
+frontend/coverage/
+.nyc_output/
+
+# Logs y depuración
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Archivos de sistema y del entorno de desarrollo (IDE)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Certificados y llaves privadas
+*.pem
+*.key
+*.cert
+*.crt
+
+# Archivos temporales y respaldos
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
