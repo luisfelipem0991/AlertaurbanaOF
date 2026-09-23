@@ -96,12 +96,9 @@ export default function ReportarHueco() {
       }
 
       // 2. Enviar JSON al backend
-      // Agregar "Envigado" implícitamente a la dirección si no lo tiene
-      let finalDireccion = formData.direccion.trim();
-      if (!finalDireccion.toLowerCase().includes("envigado")) {
-        finalDireccion += ", Envigado";
-      }
+      
 
+      let finalDireccion = formData.direccion.trim();
       const payload = {
         direccion: finalDireccion,
         barrio: formData.barrio,
