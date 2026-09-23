@@ -96,12 +96,9 @@ export default function ReportarHueco() {
       }
 
       // 2. Enviar JSON al backend
-      // Agregar "Envigado" implícitamente a la dirección si no lo tiene
-      let finalDireccion = formData.direccion.trim();
-      if (!finalDireccion.toLowerCase().includes("envigado")) {
-        finalDireccion += ", Envigado";
-      }
+      
 
+      let finalDireccion = formData.direccion.trim();
       const payload = {
         direccion: finalDireccion,
         barrio: formData.barrio,
@@ -180,10 +177,10 @@ export default function ReportarHueco() {
       <div className="relative z-10 w-full max-w-xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-8 sm:p-10 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] border border-white dark:border-slate-700 transition-colors">
         
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-orange-50 dark:bg-orange-500/10 rounded-3xl flex items-center justify-center mx-auto mb-5 border-2 border-orange-200 dark:border-orange-500/30 text-4xl shadow-inner transform rotate-3">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-50 dark:bg-orange-500/10 rounded-3xl flex items-center justify-center mx-auto mb-5 border-2 border-orange-200 dark:border-orange-500/30 text-4xl shadow-inner transform rotate-3">
             🚧
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">
             Reportar un hueco
           </h1>
           <p className="text-slate-600 dark:text-slate-400 font-medium text-sm">
